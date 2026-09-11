@@ -826,6 +826,8 @@ npm test -- --include src/app/core/xirr/solver.spec.ts --watch=false
 
 Expected: `Tests 18 passed (18)`
 
+（靜態上只有 12 個 `it()`：反解往返那一個寫在 `for` 迴圈裡，7 個報酬率各產生一個測試，所以執行時是 18 個。）
+
 若 [E] 失敗且訊息為 `expected OK, got NO_SOLUTION`，代表 bisection 的右端用了固定上限——回頭檢查 `bisection()` 的倍增迴圈。
 
 - [ ] **Step 5: Commit**
@@ -1657,7 +1659,7 @@ Expected: 全綠。
 - [ ] **Step 6: Commit**
 
 ```bash
-git add src/app/core/xirr/calculate.ts src/app/core/xirr/calculate.spec.ts src/app/core/model/types.ts
+git add src/app/core/xirr/calculate.ts src/app/core/xirr/calculate.spec.ts
 git commit -m "feat: add calculation pipeline with ordered validation and notes"
 ```
 
@@ -2757,7 +2759,7 @@ export class CalculatorStore {
 npm test -- --include src/app/state/calculator-store.spec.ts --watch=false
 ```
 
-Expected: `Tests 24 passed (24)`
+Expected: `Tests 26 passed (26)`
 
 - [ ] **Step 5: Commit**
 
