@@ -9,7 +9,7 @@ const form = (
   initial: { date: '2024-01-01', amount: initialAmount },
   rows: rowAmounts.map((amount, i) => ({
     id: `r${i}`,
-    date: `2024-0${i + 2}-01`,
+    date: `2024-${String(i + 2).padStart(2, '0')}-01`,
     amount,
   })),
   final: { date: '2025-01-01', amount: finalAmount },
@@ -48,7 +48,7 @@ describe('computeMetrics', () => {
     expect(m.totalReturn).toBe(-40000);
   });
 
-  it('性質：總報酬 === 當前總部位 + 總匯出 - 總投入', () => {
+  it('性質：四個數字都能由原始輸入獨立推導', () => {
     const cases: Array<[number, number[], number]> = [
       [100000, [50000, -30000], 145000],
       [0, [1000, 2000, -500], 3200],
@@ -58,10 +58,13 @@ describe('computeMetrics', () => {
     ];
     for (const [initial, rows, final] of cases) {
       const m = computeMetrics(form(initial, rows, final), 0.1);
-      expect(m.totalReturn).toBeCloseTo(
-        m.currentPosition + m.totalWithdrawn - m.totalInvested,
-        9,
-      );
+      const invested = initial + rows.filter((a) => a > 0).reduce((s, a) => s + a, 0);
+      const withdrawn = -rows.filter((a) => a < 0).reduce((s, a) => s + a, 0);
+
+      expect(m.totalInvested).toBeCloseTo(invested, 9);
+      expect(m.totalWithdrawn).toBeCloseTo(withdrawn, 9);
+      expect(m.currentPosition).toBe(final);
+      expect(m.totalReturn).toBeCloseTo(final + withdrawn - invested, 9);
     }
   });
 });
