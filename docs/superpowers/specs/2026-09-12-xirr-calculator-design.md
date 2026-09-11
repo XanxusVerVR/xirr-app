@@ -296,7 +296,9 @@ Bisection 區間左端固定 `−0.9999`；**右端從 `1.0` 開始倍增直到 
 
 **阻擋型**（`ValidationIssue`，帶 `target` 指到出問題的欄位）：
 
-`MISSING_DATE`、`MISSING_AMOUNT`、`DATE_ORDER`（期初 ≥ 期末）、`DATE_OUT_OF_RANGE`（進出日期落在期初～期末之外）、`NO_INVESTMENT`
+`MISSING_DATE`、`MISSING_AMOUNT`、`DATE_ORDER`（期初 ≥ 期末）、`DATE_OUT_OF_RANGE`（進出日期落在期初～期末之外）、`NO_INVESTMENT`、`UNSOLVABLE`
+
+`UNSOLVABLE` 是實作計畫階段補上的：現金流正負皆有、理論上應有解，但 solver 仍找不到根。少了它，計算管線就會有一條無法回報的分支。實務上不應觸發。
 
 **註記型**（照算，結果旁附說明）：
 
