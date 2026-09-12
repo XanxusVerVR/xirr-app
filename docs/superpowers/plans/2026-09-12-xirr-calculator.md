@@ -4126,7 +4126,10 @@ export class ResultsPanel {
 
     @if (failure(); as failed) {
       <ul class="errors">
-        @for (issue of failed.errors; track issue.code + (issue.target.rowId ?? '')) {
+        @for (
+          issue of failed.errors;
+          track issue.code + ':' + issue.target.kind + ':' + (issue.target.rowId ?? '') + ':' + issue.target.field
+        ) {
           <li>{{ issue.message }}</li>
         }
       </ul>
