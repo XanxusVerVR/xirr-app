@@ -80,3 +80,25 @@
 .flow-list.cdk-drop-list-dragging .flow-row:not(.cdk-drag-placeholder) {
   transition: transform 180ms cubic-bezier(0, 0, 0.2, 1);
 }
+
+/* 窄螢幕下 190px/120px 的最小欄寬會撐破版面，改用可縮小的彈性欄寬 */
+@media (max-width: 480px) {
+  .flow-head,
+  .flow-row {
+    grid-template-columns: minmax(0, 1.3fr) minmax(0, 0.9fr) auto;
+    gap: 0.35rem;
+  }
+
+  .date-cell {
+    gap: 0.25rem;
+  }
+
+  .row-actions {
+    gap: 0.25rem;
+  }
+
+  .row-actions button {
+    padding: 0.3rem 0.4rem;
+    font-size: 0.8rem;
+  }
+}
