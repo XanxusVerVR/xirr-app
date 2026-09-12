@@ -53,16 +53,27 @@ function collectNotes(cfs: readonly CashFlow[], rate: number, sorted: boolean): 
   return notes;
 }
 
+/** 完全空白的列（日期與金額皆未填）視為「尚未使用」，不參與驗證與計算 */
+function isBlankRow(row: CashFlowRow): boolean {
+  return row.date === '' && row.amount === null;
+}
+
 export function runCalculation(form: CalculatorForm): CalculationRun {
+  // 步驟 0：過濾完全空白的列——半填的列（只填了其中一格）仍要照常報錯
+  const activeRows = form.rows.filter((r) => !isBlankRow(r));
+  const blankRows = form.rows.filter((r) => isBlankRow(r));
+  const active: CalculatorForm = { ...form, rows: activeRows };
+
   // 步驟 1：必填檢查。必須在排序之前——沒有日期的列無法參與排序
-  const required = validateRequired(form);
+  const required = validateRequired(active);
   if (required.length > 0) {
     return { outcome: { ok: false, errors: required }, sortedRows: null, sorted: false };
   }
 
-  // 步驟 2：排序
-  const { rows: sortedRows, changed: sorted } = sortByDate(form.rows);
-  const ordered: CalculatorForm = { ...form, rows: sortedRows };
+  // 步驟 2：排序。空白列固定留在最後，不參與排序也不影響 sorted 判定
+  const { rows: sortedActiveRows, changed: sorted } = sortByDate(activeRows);
+  const sortedRows = [...sortedActiveRows, ...blankRows];
+  const ordered: CalculatorForm = { ...form, rows: sortedActiveRows };
 
   // 步驟 3：其餘驗證
   const resolved = resolveForm(ordered);

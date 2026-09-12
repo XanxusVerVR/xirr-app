@@ -186,3 +186,70 @@ describe('runCalculation — 註記', () => {
     expect(noteCodes(runCalculation(form()))).not.toContain('EXTREME_RATE');
   });
 });
+
+describe('runCalculation — 完全空白列', () => {
+  const blankRow = (id: string) => ({ id, date: '', amount: null, amountText: '' });
+
+  it('只有期初期末、資金進出列完全空白時仍能算出五項數字', () => {
+    // 100000 於 2024-01-01 → 120000 於 2025-01-01（366 天，閏年）
+    // XIRR = 1.2^(365/366) - 1 = 19.940237326909394%
+    const run = runCalculation(
+      form({
+        initial: { date: '2024-01-01', amount: 100000, amountText: '100000' },
+        rows: [blankRow('a')],
+        final: { date: '2025-01-01', amount: 120000, amountText: '120000' },
+      }),
+    );
+    expect(run.outcome.ok).toBe(true);
+    if (!run.outcome.ok) return;
+    expect(run.outcome.metrics.xirr * 100).toBeCloseTo(19.940237, 5);
+    expect(run.outcome.metrics.totalInvested).toBe(100000);
+    expect(run.outcome.metrics.totalWithdrawn).toBe(0);
+    expect(run.outcome.metrics.currentPosition).toBe(120000);
+    expect(run.outcome.metrics.totalReturn).toBe(20000);
+  });
+
+  it('半填列（有日期沒金額）仍照常擋下 MISSING_AMOUNT', () => {
+    const run = runCalculation(
+      form({
+        rows: [{ id: 'a', date: '2024-03-15', amount: null, amountText: '' }],
+      }),
+    );
+    expect(run.outcome.ok).toBe(false);
+    if (run.outcome.ok) return;
+    expect(run.outcome.errors).toEqual([
+      expect.objectContaining({ code: 'MISSING_AMOUNT', target: { kind: 'row', rowId: 'a', field: 'amount' } }),
+    ]);
+  });
+
+  it('空白列夾在真實列之間時被忽略，真實列照常排序與計算', () => {
+    const run = runCalculation(
+      form({
+        rows: [
+          { id: 'a', date: '2024-03-15', amount: 50000, amountText: '50000' },
+          blankRow('mid'),
+          { id: 'b', date: '2024-08-20', amount: -30000, amountText: '-30000' },
+        ],
+      }),
+    );
+    expect(run.outcome.ok).toBe(true);
+    if (!run.outcome.ok) return;
+    expect(run.outcome.metrics.xirr * 100).toBeCloseTo(19.353321, 5);
+    expect(run.sortedRows?.map((r) => r.id)).toEqual(['a', 'b', 'mid']);
+  });
+
+  it('空白列保留在 sortedRows 尾端，真實列本就有序時 sorted 維持 false', () => {
+    const run = runCalculation(
+      form({
+        rows: [
+          blankRow('blank'),
+          { id: 'a', date: '2024-03-15', amount: 50000, amountText: '50000' },
+          { id: 'b', date: '2024-08-20', amount: -30000, amountText: '-30000' },
+        ],
+      }),
+    );
+    expect(run.sorted).toBe(false);
+    expect(run.sortedRows?.map((r) => r.id)).toEqual(['a', 'b', 'blank']);
+    expect(noteCodes(run)).not.toContain('SORTED');
+  });
+});

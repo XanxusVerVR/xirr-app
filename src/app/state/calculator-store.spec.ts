@@ -342,4 +342,19 @@ describe('CalculatorStore — 計算', () => {
     store.calculate();
     expect(store.outcome()?.ok).toBe(false);
   });
+
+  it('只填期初期末、資金進出列維持空白時仍能算出結果', () => {
+    const store = make();
+    store.setInitialDate('2024-01-01');
+    store.setInitialAmount('100000');
+    store.setFinalDate('2025-01-01');
+    store.setFinalAmount('120000');
+    // 資金進出列刻意不填，保持 emptyForm() 給的那一列空白
+
+    store.calculate();
+
+    const outcome = store.outcome();
+    expect(outcome?.ok).toBe(true);
+    if (outcome?.ok) expect(outcome.metrics.xirr * 100).toBeCloseTo(19.940237, 5);
+  });
 });
