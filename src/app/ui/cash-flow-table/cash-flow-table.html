@@ -1,0 +1,67 @@
+<section class="card">
+  <h2>資金進出記錄</h2>
+  <p class="hint">正數代表資金投入，負數代表資金匯出。可拖曳日期左側的把手調整順序。</p>
+
+  <div class="flow-head">
+    <span>日期</span>
+    <span>金額</span>
+    <span class="actions-col">操作</span>
+  </div>
+
+  <div cdkDropList (cdkDropListDropped)="onDrop($event)" class="flow-list">
+    @for (row of store.form().rows; track row.id) {
+      <div class="flow-row" [class.has-error]="rowHasError(row.id)" cdkDrag>
+        <div class="cell date-cell">
+          <button
+            type="button"
+            class="drag-handle"
+            cdkDragHandle
+            aria-label="拖曳調整順序"
+            title="拖曳調整順序"
+          >
+            ⠿
+          </button>
+          <input
+            type="date"
+            [attr.data-row-id]="row.id"
+            [value]="row.date"
+            (input)="onDate(row.id, $event)"
+          />
+        </div>
+
+        <div class="cell">
+          <input
+            type="number"
+            step="any"
+            placeholder="0"
+            [value]="row.amount ?? ''"
+            (input)="onAmount(row.id, $event)"
+          />
+        </div>
+
+        <div class="cell row-actions">
+          <button
+            type="button"
+            class="duplicate-row"
+            (click)="onDuplicate(row.id)"
+            title="複製這一筆"
+            aria-label="複製這一筆"
+          >
+            複製
+          </button>
+          <button
+            type="button"
+            class="remove-row"
+            (click)="store.removeRow(row.id)"
+            title="刪除這一筆"
+            aria-label="刪除這一筆"
+          >
+            刪除
+          </button>
+        </div>
+      </div>
+    }
+  </div>
+
+  <button type="button" class="add-row" (click)="store.addRow()">＋ 新增一筆</button>
+</section>

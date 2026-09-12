@@ -1,0 +1,109 @@
+import { TestBed } from '@angular/core/testing';
+import { CalculatorStore } from '../../state/calculator-store';
+import { CashFlowTable } from './cash-flow-table';
+
+const setup = async () => {
+  TestBed.configureTestingModule({ imports: [CashFlowTable] });
+  const fixture = TestBed.createComponent(CashFlowTable);
+  await fixture.whenStable();
+  return {
+    fixture,
+    store: TestBed.inject(CalculatorStore),
+    el: fixture.nativeElement as HTMLElement,
+  };
+};
+
+describe('CashFlowTable', () => {
+  it('初始渲染一列', async () => {
+    const { el } = await setup();
+    expect(el.querySelectorAll('.flow-row')).toHaveLength(1);
+  });
+
+  it('每列都有拖曳把手，且把手不是輸入框', async () => {
+    const { el } = await setup();
+    const handle = el.querySelector('.drag-handle')!;
+    expect(handle).not.toBeNull();
+    expect(handle.tagName).toBe('BUTTON');
+  });
+
+  it('把手與日期輸入框是不同元素', async () => {
+    const { el } = await setup();
+    const handle = el.querySelector('.drag-handle')!;
+    expect(handle.querySelector('input')).toBeNull();
+  });
+
+  it('新增按鈕會增加一列', async () => {
+    const { fixture, el } = await setup();
+    el.querySelector<HTMLButtonElement>('.add-row')!.click();
+    await fixture.whenStable();
+    expect(el.querySelectorAll('.flow-row')).toHaveLength(2);
+  });
+
+  it('複製按鈕會複製該列的日期與金額到下一列', async () => {
+    const { fixture, store, el } = await setup();
+    store.loadExample();
+    await fixture.whenStable();
+
+    el.querySelectorAll<HTMLButtonElement>('.duplicate-row')[0].click();
+    await fixture.whenStable();
+
+    const rows = store.form().rows;
+    expect(rows).toHaveLength(3);
+    expect(rows[1].date).toBe('2024-03-15');
+    expect(rows[1].amount).toBe(50000);
+  });
+
+  it('複製後焦點移到新列的日期欄', async () => {
+    const { fixture, store, el } = await setup();
+    store.loadExample();
+    await fixture.whenStable();
+
+    el.querySelectorAll<HTMLButtonElement>('.duplicate-row')[0].click();
+    await fixture.whenStable();
+
+    const createdId = store.form().rows[1].id;
+    expect(document.activeElement).toBe(
+      el.querySelector(`input[data-row-id="${createdId}"]`),
+    );
+  });
+
+  it('刪除按鈕會移除該列', async () => {
+    const { fixture, store, el } = await setup();
+    store.loadExample();
+    await fixture.whenStable();
+
+    el.querySelectorAll<HTMLButtonElement>('.remove-row')[0].click();
+    await fixture.whenStable();
+
+    expect(store.form().rows).toHaveLength(1);
+    expect(store.form().rows[0].date).toBe('2024-08-20');
+  });
+
+  it('輸入日期與金額會寫進 store', async () => {
+    const { fixture, store, el } = await setup();
+    const date = el.querySelector<HTMLInputElement>('input[type="date"]')!;
+    date.value = '2024-06-01';
+    date.dispatchEvent(new Event('input'));
+
+    const amount = el.querySelector<HTMLInputElement>('input[type="number"]')!;
+    amount.value = '-2500';
+    amount.dispatchEvent(new Event('input'));
+    await fixture.whenStable();
+
+    expect(store.form().rows[0].date).toBe('2024-06-01');
+    expect(store.form().rows[0].amount).toBe(-2500);
+  });
+
+  it('有錯誤的列會被標示', async () => {
+    const { fixture, store, el } = await setup();
+    store.setInitialDate('2024-01-01');
+    store.setInitialAmount('1000');
+    store.setFinalDate('2025-01-01');
+    store.setFinalAmount('1100');
+    store.setRowDate(store.form().rows[0].id, '2024-06-01'); // 金額留空
+    store.calculate();
+    await fixture.whenStable();
+
+    expect(el.querySelector('.flow-row')!.classList).toContain('has-error');
+  });
+});
