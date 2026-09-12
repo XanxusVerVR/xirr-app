@@ -1,0 +1,63 @@
+.yaml-head {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.yaml-head h2 {
+  margin: 0;
+}
+
+.dirty-badge {
+  font-size: 0.75rem;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  background: #fff5e0;
+  border: 1px solid #e0b551;
+  color: #8a5b00;
+}
+
+.hint {
+  margin: 0.5rem 0 0.8rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+textarea {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.yaml-error {
+  margin: 0.6rem 0 0;
+  color: var(--danger);
+  font-size: 0.88rem;
+}
+
+.yaml-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.8rem;
+}
+
+.yaml-help-wrap {
+  margin-top: 1rem;
+  border-top: 1px solid var(--border);
+  padding-top: 0.8rem;
+}
+
+summary {
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.yaml-help {
+  margin: 0;
+  padding: 0.8rem;
+  background: #f3f5f8;
+  border-radius: var(--radius);
+  font-size: 0.82rem;
+  overflow-x: auto;
+}

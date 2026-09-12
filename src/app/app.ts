@@ -1,10 +1,11 @@
 import { Component } from '@angular/core';
 import { CashFlowTable } from './ui/cash-flow-table/cash-flow-table';
 import { PositionFields } from './ui/position-fields/position-fields';
+import { YamlPanel } from './ui/yaml-panel/yaml-panel';
 
 @Component({
   selector: 'app-root',
-  imports: [PositionFields, CashFlowTable],
+  imports: [PositionFields, CashFlowTable, YamlPanel],
   templateUrl: './app.html',
   styleUrl: './app.css',
 })
