@@ -75,6 +75,19 @@ describe('ResultsPanel', () => {
     expect(el.querySelector('.results')).toBeNull();
   });
 
+  it('在不完整表單上重複計算，錯誤清單不會錯亂', async () => {
+    const { fixture, store, el } = await setup();
+    store.calculate();
+    await fixture.whenStable();
+    const first = el.querySelectorAll('.errors li').length;
+
+    store.calculate();
+    await fixture.whenStable();
+
+    expect(el.querySelectorAll('.errors li').length).toBe(first);
+    expect(first).toBeGreaterThan(1);
+  });
+
   it('錯誤消失後改顯示結果', async () => {
     const { fixture, store, el } = await setup();
     store.calculate();
