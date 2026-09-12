@@ -13,8 +13,8 @@
     <label>
       <span>{{ amountLabel() }}</span>
       <input
-        type="number"
-        step="any"
+        type="text"
+        inputmode="decimal"
         placeholder="0"
         [class.invalid]="amountInvalid()"
         [value]="position().amountText"

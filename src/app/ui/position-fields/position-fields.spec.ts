@@ -32,7 +32,7 @@ describe('PositionFields', () => {
 
   it('輸入金額會寫進 store', async () => {
     const { fixture, store, el } = await setup('final');
-    const input = el.querySelector<HTMLInputElement>('input[type="number"]')!;
+    const input = el.querySelector<HTMLInputElement>('input[inputmode="decimal"]')!;
     input.value = '145000';
     input.dispatchEvent(new Event('input'));
     await fixture.whenStable();
@@ -44,7 +44,7 @@ describe('PositionFields', () => {
     store.loadExample();
     await fixture.whenStable();
 
-    const input = el.querySelector<HTMLInputElement>('input[type="number"]')!;
+    const input = el.querySelector<HTMLInputElement>('input[inputmode="decimal"]')!;
     expect(input.value).toBe('145000');
 
     // "-0" 是輸入負數時必經的中間值；舊的 [value]="amount ?? ''" 會寫回 "0" 吃掉負號
@@ -68,5 +68,17 @@ describe('PositionFields', () => {
     store.calculate(); // 空表單必定產生必填錯誤
     await fixture.whenStable();
     expect(el.querySelector('input[type="date"]')!.classList).toContain('invalid');
+  });
+
+  // 無法用行為測試重現「輸入負數被吃掉」這個錯誤：jsdom 沒有瀏覽器原生的
+  // 「編輯中緩衝區」，所以 type="number" 在真實瀏覽器中把只含符號的內容
+  // 清成 '' 這件事，jsdom 從未忠實模擬過。這裡改為釘住標記本身，確保
+  // 欄位是 type="text" + inputmode="decimal"，而不是會觸發該行為的
+  // type="number"。真正的修復需在真實瀏覽器手動驗證。
+  it('金額欄位是 type="text" 搭配 inputmode="decimal"（避免瀏覽器把只有符號的輸入清空）', async () => {
+    const { el } = await setup('initial');
+    const input = el.querySelector<HTMLInputElement>('input[inputmode="decimal"]')!;
+    expect(input.getAttribute('type')).toBe('text');
+    expect(input.getAttribute('inputmode')).toBe('decimal');
   });
 });

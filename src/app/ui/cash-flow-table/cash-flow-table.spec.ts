@@ -85,7 +85,7 @@ describe('CashFlowTable', () => {
     date.value = '2024-06-01';
     date.dispatchEvent(new Event('input'));
 
-    const amount = el.querySelector<HTMLInputElement>('input[type="number"]')!;
+    const amount = el.querySelector<HTMLInputElement>('input[inputmode="decimal"]')!;
     amount.value = '-2500';
     amount.dispatchEvent(new Event('input'));
     await fixture.whenStable();
@@ -99,7 +99,7 @@ describe('CashFlowTable', () => {
     store.loadExample();
     await fixture.whenStable();
 
-    const amount = el.querySelector<HTMLInputElement>('input[type="number"]')!;
+    const amount = el.querySelector<HTMLInputElement>('input[inputmode="decimal"]')!;
     expect(amount.value).toBe('50000');
 
     // 使用者全選後開始輸入負數。真實瀏覽器只打出 "-" 時 .value 會是 ''，
@@ -119,7 +119,7 @@ describe('CashFlowTable', () => {
 
   it('無法解析的中間內容不會被寫回，store 的 amount 維持未填', async () => {
     const { fixture, store, el } = await setup();
-    const amount = el.querySelector<HTMLInputElement>('input[type="number"]')!;
+    const amount = el.querySelector<HTMLInputElement>('input[inputmode="decimal"]')!;
 
     store.setRowAmount(store.form().rows[0].id, '-');
     await fixture.whenStable();
@@ -139,5 +139,17 @@ describe('CashFlowTable', () => {
     await fixture.whenStable();
 
     expect(el.querySelector('.flow-row')!.classList).toContain('has-error');
+  });
+
+  // 無法用行為測試重現「輸入負數被吃掉」這個錯誤：jsdom 沒有瀏覽器原生的
+  // 「編輯中緩衝區」，所以 type="number" 在真實瀏覽器中把只含符號的內容
+  // 清成 '' 這件事，jsdom 從未忠實模擬過。這裡改為釘住標記本身，確保
+  // 欄位是 type="text" + inputmode="decimal"，而不是會觸發該行為的
+  // type="number"。真正的修復需在真實瀏覽器手動驗證。
+  it('金額欄位是 type="text" 搭配 inputmode="decimal"（避免瀏覽器把只有符號的輸入清空）', async () => {
+    const { el } = await setup();
+    const amount = el.querySelector<HTMLInputElement>('input[inputmode="decimal"]')!;
+    expect(amount.getAttribute('type')).toBe('text');
+    expect(amount.getAttribute('inputmode')).toBe('decimal');
   });
 });
