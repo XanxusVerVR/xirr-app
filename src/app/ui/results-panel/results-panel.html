@@ -1,0 +1,58 @@
+@if (store.outcome()) {
+  <section class="card">
+    <h2>計算結果</h2>
+
+    @if (failure(); as failed) {
+      <ul class="errors">
+        @for (issue of failed.errors; track issue.code + (issue.target.rowId ?? '')) {
+          <li>{{ issue.message }}</li>
+        }
+      </ul>
+    }
+
+    @if (success(); as result) {
+      <dl class="results">
+        <div class="metric">
+          <dt>總投入金額</dt>
+          <dd data-field="totalInvested">{{ amount(result.metrics.totalInvested) }}</dd>
+        </div>
+        <div class="metric">
+          <dt>總匯出金額</dt>
+          <dd data-field="totalWithdrawn">{{ amount(result.metrics.totalWithdrawn) }}</dd>
+        </div>
+        <div class="metric">
+          <dt>當前總部位</dt>
+          <dd data-field="currentPosition">{{ amount(result.metrics.currentPosition) }}</dd>
+        </div>
+        <div class="metric">
+          <dt>總報酬</dt>
+          <dd
+            data-field="totalReturn"
+            [class.negative]="result.metrics.totalReturn < 0"
+            [class.positive]="result.metrics.totalReturn > 0"
+          >
+            {{ amount(result.metrics.totalReturn) }}
+          </dd>
+        </div>
+        <div class="metric highlight">
+          <dt>年化報酬率 (XIRR)</dt>
+          <dd
+            data-field="xirr"
+            [class.negative]="result.metrics.xirr < 0"
+            [class.positive]="result.metrics.xirr > 0"
+          >
+            {{ percent(result.metrics.xirr) }}
+          </dd>
+        </div>
+      </dl>
+
+      @if (result.notes.length > 0) {
+        <ul class="notes">
+          @for (note of result.notes; track note.code) {
+            <li>{{ note.message }}</li>
+          }
+        </ul>
+      }
+    }
+  </section>
+}
