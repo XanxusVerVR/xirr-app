@@ -1,0 +1,19 @@
+<section class="action-bar">
+  <button type="button" class="calculate primary" (click)="store.calculate()">
+    計算報酬率
+  </button>
+  <button type="button" class="load-example" (click)="requestExample()">載入範例</button>
+  <button type="button" class="clear-all" (click)="requestClear()">清除全部</button>
+</section>
+
+@if (pending()) {
+  <div class="confirm-bar">
+    <span>目前的資料會被覆蓋，確定要{{ confirmLabel() }}嗎？</span>
+    <div class="confirm-actions">
+      <button type="button" class="confirm-yes primary" (click)="confirm()">
+        確定{{ confirmLabel() }}
+      </button>
+      <button type="button" class="confirm-no" (click)="cancel()">取消</button>
+    </div>
+  </div>
+}
