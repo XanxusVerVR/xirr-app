@@ -1,0 +1,24 @@
+.action-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.confirm-bar {
+  margin-top: 0.8rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+  padding: 0.7rem 0.9rem;
+  background: #fff8e8;
+  border: 1px solid #e0b551;
+  border-radius: var(--radius);
+  font-size: 0.9rem;
+}
+
+.confirm-actions {
+  display: flex;
+  gap: 0.5rem;
+}

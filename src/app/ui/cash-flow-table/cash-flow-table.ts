@@ -1,0 +1,51 @@
+import { CdkDrag, CdkDragDrop, CdkDragHandle, CdkDropList } from '@angular/cdk/drag-drop';
+import { Component, ElementRef, Injector, afterNextRender, inject } from '@angular/core';
+import { CalculatorStore } from '../../state/calculator-store';
+
+@Component({
+  selector: 'app-cash-flow-table',
+  imports: [CdkDropList, CdkDrag, CdkDragHandle],
+  templateUrl: './cash-flow-table.html',
+  styleUrl: './cash-flow-table.css',
+})
+export class CashFlowTable {
+  protected readonly store = inject(CalculatorStore);
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
+  private readonly injector = inject(Injector);
+
+  protected onDrop(event: CdkDragDrop<unknown>): void {
+    this.store.moveRow(event.previousIndex, event.currentIndex);
+  }
+
+  /** 複製後把焦點移到新列的日期欄，使用者才能直接改日期 */
+  protected onDuplicate(id: string): void {
+    this.store.duplicateRow(id);
+
+    const rows = this.store.form().rows;
+    const index = rows.findIndex((r) => r.id === id);
+    const created = rows[index + 1];
+    if (created === undefined) return;
+
+    // 新列要等變更偵測跑完才進 DOM，不能在這裡直接查詢
+    afterNextRender(
+      () => {
+        this.host.nativeElement
+          .querySelector<HTMLInputElement>(`input[data-row-id="${created.id}"]`)
+          ?.focus();
+      },
+      { injector: this.injector },
+    );
+  }
+
+  protected onDate(id: string, event: Event): void {
+    this.store.setRowDate(id, (event.target as HTMLInputElement).value);
+  }
+
+  protected onAmount(id: string, event: Event): void {
+    this.store.setRowAmount(id, (event.target as HTMLInputElement).value);
+  }
+
+  protected rowHasError(id: string): boolean {
+    return this.store.issuesByRow().has(id);
+  }
+}

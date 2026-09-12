@@ -1,0 +1,42 @@
+<section class="card">
+  <div class="yaml-head">
+    <h2 id="yaml-panel-heading">YAML 輸入</h2>
+    @if (store.yamlDirty()) {
+      <span class="dirty-badge">尚未套用</span>
+    }
+  </div>
+
+  <p class="hint">
+    不想用上方表單時，可以直接在這裡編輯 YAML，按「套用 YAML」後即可計算。
+  </p>
+
+  <textarea
+    rows="14"
+    spellcheck="false"
+    aria-labelledby="yaml-panel-heading"
+    [value]="store.yamlText()"
+    (input)="onInput($event)"
+  ></textarea>
+
+  @if (store.yamlError(); as error) {
+    <p class="yaml-error">{{ error }}</p>
+  }
+
+  <div class="yaml-actions">
+    <button type="button" class="apply-yaml" [disabled]="!store.yamlDirty()" (click)="store.applyYaml()">
+      套用 YAML
+    </button>
+    @if (store.yamlDirty()) {
+      <button type="button" class="discard-yaml" (click)="store.discardYaml()">捨棄變更</button>
+    }
+  </div>
+
+  <details class="yaml-help-wrap">
+    <summary>資料格式說明</summary>
+    <p class="hint">
+      <code>initial</code> 是期初部位、<code>final</code> 是期末部位、<code>flows</code>
+      是資金進出記錄。日期一律使用 <code>YYYY-MM-DD</code> 格式。
+    </p>
+    <pre class="yaml-help">{{ helpExample }}</pre>
+  </details>
+</section>

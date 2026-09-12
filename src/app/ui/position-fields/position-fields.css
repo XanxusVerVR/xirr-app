@@ -1,0 +1,16 @@
+.fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.9rem;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+label > span {
+  font-size: 0.85rem;
+  color: var(--muted);
+}

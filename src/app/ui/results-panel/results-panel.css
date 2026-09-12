@@ -1,0 +1,57 @@
+.errors {
+  margin: 0;
+  padding-left: 1.2rem;
+  color: var(--danger);
+}
+
+.errors li + li {
+  margin-top: 0.2rem;
+}
+
+.results {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.8rem;
+  margin: 0;
+}
+
+.metric {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.7rem 0.8rem;
+}
+
+.metric.highlight {
+  border-color: var(--accent);
+  background: #f2f6fe;
+}
+
+dt {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+dd {
+  margin: 0.2rem 0 0;
+  font-size: 1.25rem;
+  font-variant-numeric: tabular-nums;
+}
+
+dd.negative {
+  color: var(--danger);
+}
+
+dd.positive {
+  color: var(--positive);
+}
+
+.notes {
+  margin: 1rem 0 0;
+  padding-left: 1.2rem;
+  font-size: 0.87rem;
+  color: var(--muted);
+}
+
+.notes li + li {
+  margin-top: 0.25rem;
+}
