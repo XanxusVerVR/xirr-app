@@ -1,5 +1,6 @@
 import * as yaml from 'js-yaml';
 import type { CalculatorForm, CashFlowRow, PositionInput } from '../model/types';
+import { amountToText } from '../amount-text';
 
 export type ParseResult =
   | { ok: true; form: CalculatorForm }
@@ -28,13 +29,13 @@ function readPosition(
 
   const rawAmount = value['amount'];
   if (rawAmount === null || rawAmount === undefined) {
-    return { position: { date, amount: null } };
+    return { position: { date, amount: null, amountText: amountToText(null) } };
   }
   if (typeof rawAmount !== 'number' || !Number.isFinite(rawAmount)) {
     return { error: `${name} 的 amount 必須是數字。` };
   }
 
-  return { position: { date, amount: rawAmount } };
+  return { position: { date, amount: rawAmount, amountText: amountToText(rawAmount) } };
 }
 
 export function parseForm(text: string, makeId: () => string): ParseResult {
@@ -76,7 +77,12 @@ export function parseForm(text: string, makeId: () => string): ParseResult {
   for (let i = 0; i < flows.length; i++) {
     const entry = readPosition(flows[i], `flows 第 ${i + 1} 筆`);
     if ('error' in entry) return fail(entry.error);
-    rows.push({ id: makeId(), date: entry.position.date, amount: entry.position.amount });
+    rows.push({
+      id: makeId(),
+      date: entry.position.date,
+      amount: entry.position.amount,
+      amountText: entry.position.amountText,
+    });
   }
 
   return {

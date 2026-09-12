@@ -3,12 +3,12 @@ import { toEpochDay } from '../date';
 import { resolveForm, toCashFlows, validateRanges, validateRequired } from './validate';
 
 const baseForm = (): CalculatorForm => ({
-  initial: { date: '2024-01-01', amount: 100000 },
+  initial: { date: '2024-01-01', amount: 100000, amountText: '100000' },
   rows: [
-    { id: 'a', date: '2024-03-15', amount: 50000 },
-    { id: 'b', date: '2024-08-20', amount: -30000 },
+    { id: 'a', date: '2024-03-15', amount: 50000, amountText: '50000' },
+    { id: 'b', date: '2024-08-20', amount: -30000, amountText: '-30000' },
   ],
-  final: { date: '2025-01-01', amount: 145000 },
+  final: { date: '2025-01-01', amount: 145000, amountText: '145000' },
 });
 
 describe('validateRequired', () => {

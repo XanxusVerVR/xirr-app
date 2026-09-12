@@ -2,12 +2,12 @@ import type { CalculatorForm, NoteCode } from '../model/types';
 import { runCalculation } from './calculate';
 
 const form = (over: Partial<CalculatorForm> = {}): CalculatorForm => ({
-  initial: { date: '2024-01-01', amount: 100000 },
+  initial: { date: '2024-01-01', amount: 100000, amountText: '100000' },
   rows: [
-    { id: 'a', date: '2024-03-15', amount: 50000 },
-    { id: 'b', date: '2024-08-20', amount: -30000 },
+    { id: 'a', date: '2024-03-15', amount: 50000, amountText: '50000' },
+    { id: 'b', date: '2024-08-20', amount: -30000, amountText: '-30000' },
   ],
-  final: { date: '2025-01-01', amount: 145000 },
+  final: { date: '2025-01-01', amount: 145000, amountText: '145000' },
   ...over,
 });
 
@@ -37,8 +37,8 @@ describe('runCalculation — 排序', () => {
     const run = runCalculation(
       form({
         rows: [
-          { id: 'b', date: '2024-08-20', amount: -30000 },
-          { id: 'a', date: '2024-03-15', amount: 50000 },
+          { id: 'b', date: '2024-08-20', amount: -30000, amountText: '-30000' },
+          { id: 'a', date: '2024-03-15', amount: 50000, amountText: '50000' },
         ],
       }),
     );
@@ -52,8 +52,8 @@ describe('runCalculation — 排序', () => {
     const run = runCalculation(
       form({
         rows: [
-          { id: 'x', date: '2024-05-01', amount: 100 },
-          { id: 'y', date: '2024-05-01', amount: 200 },
+          { id: 'x', date: '2024-05-01', amount: 100, amountText: '100' },
+          { id: 'y', date: '2024-05-01', amount: 200, amountText: '200' },
         ],
       }),
     );
@@ -65,8 +65,8 @@ describe('runCalculation — 排序', () => {
     const run = runCalculation(
       form({
         rows: [
-          { id: 'b', date: '2024-08-20', amount: -30000 },
-          { id: 'a', date: '', amount: 50000 },
+          { id: 'b', date: '2024-08-20', amount: -30000, amountText: '-30000' },
+          { id: 'a', date: '', amount: 50000, amountText: '50000' },
         ],
       }),
     );
@@ -78,7 +78,9 @@ describe('runCalculation — 排序', () => {
 
 describe('runCalculation — 阻擋型錯誤', () => {
   it('期初晚於期末', () => {
-    const run = runCalculation(form({ final: { date: '2023-01-01', amount: 145000 } }));
+    const run = runCalculation(
+      form({ final: { date: '2023-01-01', amount: 145000, amountText: '145000' } }),
+    );
     expect(run.outcome.ok).toBe(false);
     if (run.outcome.ok) return;
     expect(run.outcome.errors[0].code).toBe('DATE_ORDER');
@@ -87,9 +89,9 @@ describe('runCalculation — 阻擋型錯誤', () => {
   it('[G] 只有匯出、沒有投入 → NO_INVESTMENT', () => {
     const run = runCalculation(
       form({
-        initial: { date: '2024-01-01', amount: 0 },
-        rows: [{ id: 'a', date: '2024-06-01', amount: -5000 }],
-        final: { date: '2025-01-01', amount: 0 },
+        initial: { date: '2024-01-01', amount: 0, amountText: '0' },
+        rows: [{ id: 'a', date: '2024-06-01', amount: -5000, amountText: '-5000' }],
+        final: { date: '2025-01-01', amount: 0, amountText: '0' },
       }),
     );
     expect(run.outcome.ok).toBe(false);
@@ -100,9 +102,9 @@ describe('runCalculation — 阻擋型錯誤', () => {
   it('全部金額為 0 → NO_INVESTMENT', () => {
     const run = runCalculation(
       form({
-        initial: { date: '2024-01-01', amount: 0 },
+        initial: { date: '2024-01-01', amount: 0, amountText: '0' },
         rows: [],
-        final: { date: '2025-01-01', amount: 0 },
+        final: { date: '2025-01-01', amount: 0, amountText: '0' },
       }),
     );
     expect(run.outcome.ok).toBe(false);
@@ -114,7 +116,7 @@ describe('runCalculation — 阻擋型錯誤', () => {
 describe('runCalculation — 註記', () => {
   it('[D] 本金全損 → -100% 且附 TOTAL_LOSS，不是錯誤', () => {
     const run = runCalculation(
-      form({ rows: [], final: { date: '2025-01-01', amount: 0 } }),
+      form({ rows: [], final: { date: '2025-01-01', amount: 0, amountText: '0' } }),
     );
     expect(run.outcome.ok).toBe(true);
     if (!run.outcome.ok) return;
@@ -123,14 +125,29 @@ describe('runCalculation — 註記', () => {
     expect(run.outcome.metrics.totalReturn).toBe(-100000);
   });
 
+  it('[H] 幾乎全損但仍有殘值 → 給得出數字，不是 UNSOLVABLE', () => {
+    const run = runCalculation(
+      form({
+        initial: { date: '2024-01-01', amount: 100000, amountText: '100000' },
+        rows: [],
+        final: { date: '2025-01-01', amount: 1, amountText: '1' },
+      }),
+    );
+    expect(run.outcome.ok).toBe(true);
+    if (!run.outcome.ok) return;
+    expect(run.outcome.metrics.xirr).toBeCloseTo(-0.999989680439, 9);
+    expect(noteCodes(run)).toContain('EXTREME_RATE');
+    expect(noteCodes(run)).not.toContain('TOTAL_LOSS');
+  });
+
   it('[C] 符號變換 3 次 → MULTIPLE_ROOTS', () => {
     const run = runCalculation(
       form({
         rows: [
-          { id: 'a', date: '2024-04-01', amount: -120000 },
-          { id: 'b', date: '2024-07-01', amount: 80000 },
+          { id: 'a', date: '2024-04-01', amount: -120000, amountText: '-120000' },
+          { id: 'b', date: '2024-07-01', amount: 80000, amountText: '80000' },
         ],
-        final: { date: '2025-01-01', amount: 75000 },
+        final: { date: '2025-01-01', amount: 75000, amountText: '75000' },
       }),
     );
     expect(noteCodes(run)).toContain('MULTIPLE_ROOTS');
@@ -144,9 +161,9 @@ describe('runCalculation — 註記', () => {
   it('[E] 一天翻倍 → EXTREME_RATE，且不是錯誤', () => {
     const run = runCalculation(
       form({
-        initial: { date: '2024-01-01', amount: 100 },
+        initial: { date: '2024-01-01', amount: 100, amountText: '100' },
         rows: [],
-        final: { date: '2024-01-02', amount: 200 },
+        final: { date: '2024-01-02', amount: 200, amountText: '200' },
       }),
     );
     expect(run.outcome.ok).toBe(true);
@@ -156,9 +173,9 @@ describe('runCalculation — 註記', () => {
   it('[F] 一天 +1% → 3678% 仍附 EXTREME_RATE（超過 1000% 門檻）', () => {
     const run = runCalculation(
       form({
-        initial: { date: '2024-01-01', amount: 100 },
+        initial: { date: '2024-01-01', amount: 100, amountText: '100' },
         rows: [],
-        final: { date: '2024-01-02', amount: 101 },
+        final: { date: '2024-01-02', amount: 101, amountText: '101' },
       }),
     );
     expect(noteCodes(run)).toContain('EXTREME_RATE');

@@ -17,7 +17,7 @@
         step="any"
         placeholder="0"
         [class.invalid]="amountInvalid()"
-        [value]="position().amount ?? ''"
+        [value]="position().amountText"
         (input)="onAmount($event)"
       />
     </label>

@@ -6,8 +6,9 @@ export type SolveResult = { status: 'OK'; rate: number } | { status: 'NO_SOLUTIO
 const NEWTON_START = 0.1;
 const NEWTON_MAX_ITERATIONS = 100;
 const RELATIVE_TOLERANCE = 1e-9;
-const LOWER_BOUND = -0.9999;
+const LOWER_START = -0.9999;
 const MAX_DOUBLINGS = 1000;
+const MAX_LOW_HALVINGS = 60;
 const BISECTION_ITERATIONS = 300;
 
 function scaleOf(cfs: readonly CashFlow[]): number {
@@ -48,28 +49,61 @@ function newton(cfs: readonly CashFlow[], tolerance: number): number | null {
 }
 
 /**
- * 右端從 1.0 開始倍增直到 NPV 變號。
- * 不可改回固定上限：「一天翻倍」的真解是 2^365 - 1 ~ 7.5e109，
+ * 兩端都用自適應擴張，任一端都不可改回固定界限。
+ *
+ * 右端：從 1.0 開始倍增直到 NPV 變號。「一天翻倍」的真解是 2^365 - 1 ~ 7.5e109，
  * 任何合理的固定上限都會讓它被誤報為無解（見 spec §7）。
+ *
+ * 左端：從 -0.9999 開始，每次把「到 -1 的剩餘距離」減半。同樣不可改回固定下限：
+ * 期初 100000、期末剩 1 的真解是 -0.99998968，落在 (-1, -0.9999) 內，
+ * 固定下限 -0.9999 會讓這種「幾乎全損但仍有殘值」的部位被誤報為無解。
  */
 function bisection(cfs: readonly CashFlow[]): number | null {
-  const low = LOWER_BOUND;
-  const valueAtLow = npv(cfs, low);
+  let low = LOWER_START;
+  let valueAtLow = npv(cfs, low);
   if (!Number.isFinite(valueAtLow)) return null;
 
+  // 右端倍增
   let high = 1;
   let valueAtHigh = npv(cfs, high);
+  if (!Number.isFinite(valueAtHigh)) return null;
   let doublings = 0;
-  while (valueAtLow * valueAtHigh > 0) {
-    high *= 2;
+  while (valueAtLow * valueAtHigh > 0 && doublings < MAX_DOUBLINGS) {
+    const nextHigh = high * 2;
+    if (!Number.isFinite(nextHigh)) break;
+    const nextValue = npv(cfs, nextHigh);
+    if (!Number.isFinite(nextValue)) break;
+    high = nextHigh;
+    valueAtHigh = nextValue;
     doublings++;
-    if (doublings > MAX_DOUBLINGS || !Number.isFinite(high)) return null;
-    valueAtHigh = npv(cfs, high);
-    if (!Number.isFinite(valueAtHigh)) return null;
   }
 
   let lo = low;
   let hi = high;
+
+  // 右端找不到變號時，改逼近 -1：剩餘距離每次減半，直到 npv 不再是有限值。
+  // 變號時取 [nextLow, low] 這一段當區間——兩端點相鄰，比 [nextLow, high] 窄得多，
+  // 固定次數的二分才有足夠精度（用超寬區間會停在離根很遠的地方）。
+  if (valueAtLow * valueAtHigh > 0) {
+    let bracketed = false;
+    for (let i = 0; i < MAX_LOW_HALVINGS; i++) {
+      const nextLow = -1 + (1 + low) / 2;
+      if (!(nextLow > -1) || nextLow === low) break;
+      const nextValue = npv(cfs, nextLow);
+      if (!Number.isFinite(nextValue)) break;
+      if (nextValue * valueAtLow <= 0) {
+        lo = nextLow;
+        hi = low;
+        bracketed = true;
+        break;
+      }
+      low = nextLow;
+      valueAtLow = nextValue;
+    }
+    // 兩端都擴張過仍未變號，才算真的無解
+    if (!bracketed) return null;
+  }
+
   for (let i = 0; i < BISECTION_ITERATIONS; i++) {
     const mid = (lo + hi) / 2;
     if (npv(cfs, lo) * npv(cfs, mid) <= 0) hi = mid;

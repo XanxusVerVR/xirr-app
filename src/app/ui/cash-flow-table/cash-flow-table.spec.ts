@@ -94,6 +94,40 @@ describe('CashFlowTable', () => {
     expect(store.form().rows[0].amount).toBe(-2500);
   });
 
+  it('打到一半的中間值不會被寫回覆蓋（負號不會被吃掉）', async () => {
+    const { fixture, store, el } = await setup();
+    store.loadExample();
+    await fixture.whenStable();
+
+    const amount = el.querySelector<HTMLInputElement>('input[type="number"]')!;
+    expect(amount.value).toBe('50000');
+
+    // 使用者全選後開始輸入負數。真實瀏覽器只打出 "-" 時 .value 會是 ''，
+    // jsdom 也會把 '-' 清成 ''，故以 "-0"（同樣是尚未打完的中間值）重現同一條寫回路徑：
+    // 舊的 [value]="amount ?? ''" 會把解析結果 -0 寫回成 "0"，負號當場消失。
+    amount.value = '-0';
+    amount.dispatchEvent(new Event('input'));
+    await fixture.whenStable();
+    expect(amount.value).toBe('-0');
+
+    amount.value = '-025000';
+    amount.dispatchEvent(new Event('input'));
+    await fixture.whenStable();
+    expect(amount.value).toBe('-025000');
+    expect(store.form().rows[0].amount).toBe(-25000);
+  });
+
+  it('無法解析的中間內容不會被寫回，store 的 amount 維持未填', async () => {
+    const { fixture, store, el } = await setup();
+    const amount = el.querySelector<HTMLInputElement>('input[type="number"]')!;
+
+    store.setRowAmount(store.form().rows[0].id, '-');
+    await fixture.whenStable();
+
+    expect(store.form().rows[0].amountText).toBe('-');
+    expect(store.form().rows[0].amount).toBeNull();
+  });
+
   it('有錯誤的列會被標示', async () => {
     const { fixture, store, el } = await setup();
     store.setInitialDate('2024-01-01');

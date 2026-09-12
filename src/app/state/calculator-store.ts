@@ -5,6 +5,7 @@ import type {
   Outcome,
   ValidationIssue,
 } from '../core/model/types';
+import { amountToText } from '../core/amount-text';
 import { exampleForm } from '../core/example';
 import { runCalculation } from '../core/xirr/calculate';
 import { parseForm } from '../core/yaml/parse';
@@ -16,14 +17,14 @@ function nextId(): string {
 }
 
 function emptyRow(): CashFlowRow {
-  return { id: nextId(), date: '', amount: null };
+  return { id: nextId(), date: '', amount: null, amountText: amountToText(null) };
 }
 
 function emptyForm(): CalculatorForm {
   return {
-    initial: { date: '', amount: null },
+    initial: { date: '', amount: null, amountText: amountToText(null) },
     rows: [emptyRow()],
-    final: { date: '', amount: null },
+    final: { date: '', amount: null, amountText: amountToText(null) },
   };
 }
 
@@ -103,7 +104,12 @@ export class CalculatorStore {
       const index = f.rows.findIndex((r) => r.id === id);
       if (index === -1) return f;
       const source = f.rows[index];
-      const copy: CashFlowRow = { id: nextId(), date: source.date, amount: source.amount };
+      const copy: CashFlowRow = {
+        id: nextId(),
+        date: source.date,
+        amount: source.amount,
+        amountText: source.amountText,
+      };
       const rows = [...f.rows];
       rows.splice(index + 1, 0, copy);
       return { ...f, rows };
@@ -127,10 +133,15 @@ export class CalculatorStore {
     this.formState.update((f) => ({ ...f, initial: { ...f.initial, date: value } }));
   }
 
+  /**
+   * raw 原封不動存進 amountText，另外解析出 amount。
+   * 不可只存解析後的值：使用者在既有數值上輸入 "-" 時，
+   * type=number 的 .value 會是 ''，若畫面綁的是解析結果就會把剛打的負號寫回蓋掉。
+   */
   setInitialAmount(raw: string): void {
     this.formState.update((f) => ({
       ...f,
-      initial: { ...f.initial, amount: parseAmount(raw) },
+      initial: { ...f.initial, amount: parseAmount(raw), amountText: raw },
     }));
   }
 
@@ -139,7 +150,10 @@ export class CalculatorStore {
   }
 
   setFinalAmount(raw: string): void {
-    this.formState.update((f) => ({ ...f, final: { ...f.final, amount: parseAmount(raw) } }));
+    this.formState.update((f) => ({
+      ...f,
+      final: { ...f.final, amount: parseAmount(raw), amountText: raw },
+    }));
   }
 
   setRowDate(id: string, value: string): void {
@@ -152,7 +166,9 @@ export class CalculatorStore {
   setRowAmount(id: string, raw: string): void {
     this.formState.update((f) => ({
       ...f,
-      rows: f.rows.map((r) => (r.id === id ? { ...r, amount: parseAmount(raw) } : r)),
+      rows: f.rows.map((r) =>
+        r.id === id ? { ...r, amount: parseAmount(raw), amountText: raw } : r,
+      ),
     }));
   }
 
@@ -172,7 +188,9 @@ export class CalculatorStore {
       return; // 保留草稿、維持髒
     }
 
-    this.formState.set(result.form);
+    // 保底一列空白 row：flows: [] 套用後若不補，使用者會無處可打字（與 clearAll 一致）
+    const rows = result.form.rows.length > 0 ? result.form.rows : [emptyRow()];
+    this.formState.set({ ...result.form, rows });
     this.yamlDraft.set(null);
     this.yamlErrorState.set(null);
     this.outcomeState.set(null);

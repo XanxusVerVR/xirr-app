@@ -39,6 +39,23 @@ describe('PositionFields', () => {
     expect(store.form().final.amount).toBe(145000);
   });
 
+  it('打到一半的中間值不會被寫回覆蓋', async () => {
+    const { fixture, store, el } = await setup('final');
+    store.loadExample();
+    await fixture.whenStable();
+
+    const input = el.querySelector<HTMLInputElement>('input[type="number"]')!;
+    expect(input.value).toBe('145000');
+
+    // "-0" 是輸入負數時必經的中間值；舊的 [value]="amount ?? ''" 會寫回 "0" 吃掉負號
+    input.value = '-0';
+    input.dispatchEvent(new Event('input'));
+    await fixture.whenStable();
+
+    expect(input.value).toBe('-0');
+    expect(store.form().final.amountText).toBe('-0');
+  });
+
   it('store 的值會反映回畫面', async () => {
     const { fixture, store, el } = await setup('initial');
     store.loadExample();

@@ -32,11 +32,11 @@ final:
 describe('parseForm — 成功', () => {
   it('解析完整文件', () => {
     const form = okForm(VALID);
-    expect(form.initial).toEqual({ date: '2024-01-01', amount: 100000 });
-    expect(form.final).toEqual({ date: '2025-01-01', amount: 145000 });
+    expect(form.initial).toEqual({ date: '2024-01-01', amount: 100000, amountText: '100000' });
+    expect(form.final).toEqual({ date: '2025-01-01', amount: 145000, amountText: '145000' });
     expect(form.rows).toEqual([
-      { id: 'id-1', date: '2024-03-15', amount: 50000 },
-      { id: 'id-2', date: '2024-08-20', amount: -30000 },
+      { id: 'id-1', date: '2024-03-15', amount: 50000, amountText: '50000' },
+      { id: 'id-2', date: '2024-08-20', amount: -30000, amountText: '-30000' },
     ]);
   });
 
@@ -79,7 +79,7 @@ final:
   date: 2025-01-01
   amount: 200
 `);
-    expect(form.initial).toEqual({ date: '', amount: null });
+    expect(form.initial).toEqual({ date: '', amount: null, amountText: '' });
   });
 
   it('接受負數與小數', () => {
@@ -189,12 +189,12 @@ final:
 describe('parseForm — 往返性質', () => {
   it('parse(serialize(form)) 還原出相同的日期與金額', () => {
     const original: CalculatorForm = {
-      initial: { date: '2024-01-01', amount: 100000 },
+      initial: { date: '2024-01-01', amount: 100000, amountText: '100000' },
       rows: [
-        { id: 'a', date: '2024-03-15', amount: 50000 },
-        { id: 'b', date: '2024-08-20', amount: -30000 },
+        { id: 'a', date: '2024-03-15', amount: 50000, amountText: '50000' },
+        { id: 'b', date: '2024-08-20', amount: -30000, amountText: '-30000' },
       ],
-      final: { date: '2025-01-01', amount: 145000 },
+      final: { date: '2025-01-01', amount: 145000, amountText: '145000' },
     };
     const round = okForm(serializeForm(original));
     expect(round.initial).toEqual(original.initial);
@@ -206,12 +206,12 @@ describe('parseForm — 往返性質', () => {
 
   it('半填表單同樣可往返', () => {
     const original: CalculatorForm = {
-      initial: { date: '', amount: null },
-      rows: [{ id: 'a', date: '2024-03-15', amount: null }],
-      final: { date: '2025-01-01', amount: 0 },
+      initial: { date: '', amount: null, amountText: '' },
+      rows: [{ id: 'a', date: '2024-03-15', amount: null, amountText: '' }],
+      final: { date: '2025-01-01', amount: 0, amountText: '0' },
     };
     const round = okForm(serializeForm(original));
-    expect(round.initial).toEqual({ date: '', amount: null });
+    expect(round.initial).toEqual({ date: '', amount: null, amountText: '' });
     expect(round.rows[0].amount).toBeNull();
     expect(round.final.amount).toBe(0);
   });

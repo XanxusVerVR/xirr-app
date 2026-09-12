@@ -111,6 +111,40 @@ describe('CalculatorStore — 金額解析', () => {
     store.setFinalAmount('-12.5');
     expect(store.form().final.amount).toBeCloseTo(-12.5, 9);
   });
+
+  it('在已有數值的欄位上覆寫負數，負號不會被吃掉', () => {
+    const store = make();
+    store.loadExample();
+    const rowId = store.form().rows[0].id;
+    expect(store.form().rows[0].amount).toBe(50000);
+
+    // 使用者全選後輸入 "-25000"：type=number 在只有負號時 .value 回傳 ''
+    store.setRowAmount(rowId, '');
+    store.setRowAmount(rowId, '-2');
+    store.setRowAmount(rowId, '-25000');
+
+    expect(store.form().rows[0].amount).toBe(-25000);
+    expect(store.form().rows[0].amountText).toBe('-25000');
+  });
+
+  it('amountText 保留使用者打的原始文字，amount 仍是解析後的值', () => {
+    const store = make();
+    store.setInitialAmount('abc');
+    expect(store.form().initial.amountText).toBe('abc');
+    expect(store.form().initial.amount).toBeNull();
+  });
+
+  it('程式設定的表單，amountText 與 amount 一致', () => {
+    const store = make();
+    store.loadExample();
+    expect(store.form().initial.amountText).toBe('100000');
+    expect(store.form().rows[1].amountText).toBe('-30000');
+    expect(store.form().final.amountText).toBe('145000');
+
+    store.clearAll();
+    expect(store.form().initial.amountText).toBe('');
+    expect(store.form().rows[0].amountText).toBe('');
+  });
 });
 
 describe('CalculatorStore — YAML dirty 狀態', () => {
@@ -152,6 +186,44 @@ final:
     expect(store.form().rows).toHaveLength(1);
   });
 
+  it('applyYaml 套用空的 flows 時仍保留一列空白，讓使用者有地方輸入', () => {
+    const store = make();
+    store.editYaml(`
+initial:
+  date: 2024-01-01
+  amount: 100000
+flows: []
+final:
+  date: 2025-01-01
+  amount: 145000
+`);
+    store.applyYaml();
+
+    expect(store.form().rows).toHaveLength(1);
+    expect(store.form().rows[0].date).toBe('');
+    expect(store.form().rows[0].amount).toBeNull();
+    expect(store.form().rows[0].amountText).toBe('');
+  });
+
+  it('applyYaml 灌回的金額，amountText 與 amount 一致', () => {
+    const store = make();
+    store.editYaml(`
+initial:
+  date: 2024-01-01
+  amount: 100000
+flows:
+  - date: 2024-03-15
+    amount: -30000
+final:
+  date: 2025-01-01
+  amount: 145000
+`);
+    store.applyYaml();
+
+    expect(store.form().initial.amountText).toBe('100000');
+    expect(store.form().rows[0].amountText).toBe('-30000');
+  });
+
   it('applyYaml 失敗時保留草稿、維持髒、顯示錯誤', () => {
     const store = make();
     store.editYaml('initial:\n  date: 2024-01-01\n   amount: 5\n');
@@ -191,7 +263,11 @@ describe('CalculatorStore — 載入範例與清除', () => {
   it('loadExample 填入範例資料', () => {
     const store = make();
     store.loadExample();
-    expect(store.form().initial).toEqual({ date: '2024-01-01', amount: 100000 });
+    expect(store.form().initial).toEqual({
+      date: '2024-01-01',
+      amount: 100000,
+      amountText: '100000',
+    });
     expect(store.form().rows).toHaveLength(2);
     expect(store.isEmpty()).toBe(false);
   });
@@ -202,7 +278,7 @@ describe('CalculatorStore — 載入範例與清除', () => {
     store.calculate();
     store.clearAll();
 
-    expect(store.form().initial).toEqual({ date: '', amount: null });
+    expect(store.form().initial).toEqual({ date: '', amount: null, amountText: '' });
     expect(store.form().rows).toHaveLength(1);
     expect(store.outcome()).toBeNull();
     expect(store.isEmpty()).toBe(true);

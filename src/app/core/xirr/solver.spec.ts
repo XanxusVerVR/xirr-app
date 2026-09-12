@@ -48,6 +48,25 @@ describe('solveXirr — 黃金值', () => {
     const rate = rateOf([cf('2024-01-01', -100), cf('2024-01-02', 101)]);
     expect(rate * 100).toBeCloseTo(3678.343, 2);
   });
+
+  it('[H] 幾乎全損但仍有殘值 → r ~ -0.99999，固定下限會誤報無解', () => {
+    // 期初 100000、一年後只剩 1。真解 -0.99998968 落在 (-1, -0.9999)，
+    // 固定下限 -0.9999 時 NPV(-0.9999) = -89744，倍增右端永遠碰不到變號。
+    const rate = rateOf([cf('2024-01-01', -100000), cf('2025-01-01', 1)]);
+    expect(rate).toBeCloseTo(-0.999989680439, 9);
+    expect(rate).toBeGreaterThan(-1);
+  });
+
+  it('[H2] 殘值更小時仍算得出數字', () => {
+    const rate = rateOf([cf('2024-01-01', -100000), cf('2025-01-01', 0.01)]);
+    expect(rate).toBeCloseTo(-0.999999895498, 11);
+    expect(rate).toBeGreaterThan(-1);
+  });
+
+  it('-99.99% 這種原本就在區間內的損失不受影響', () => {
+    const rate = rateOf([cf('2024-01-01', -100000), cf('2025-01-01', 10)]);
+    expect(rate).toBeCloseTo(-0.999897451583, 9);
+  });
 });
 
 describe('solveXirr — 無解', () => {

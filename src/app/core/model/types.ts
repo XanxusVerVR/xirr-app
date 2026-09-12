@@ -6,11 +6,19 @@ export interface CashFlowRow {
   date: string;
   /** 未填為 null。null 與 0 意義不同：0 是合法金額 */
   amount: number | null;
+  /**
+   * 使用者最後輸入的原始文字（或程式設定值的字串形式）。
+   * 畫面綁這個欄位，才不會在輸入 "-" 這類尚未可解析的中間狀態時被寫回覆蓋。
+   * 驗證、彙總與 solver 一律只看 amount。
+   */
+  amountText: string;
 }
 
 export interface PositionInput {
   date: string;
   amount: number | null;
+  /** 同 CashFlowRow.amountText：畫面綁定用的原始文字 */
+  amountText: string;
 }
 
 export interface CalculatorForm {

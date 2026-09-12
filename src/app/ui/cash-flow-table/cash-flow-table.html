@@ -34,7 +34,7 @@
             type="number"
             step="any"
             placeholder="0"
-            [value]="row.amount ?? ''"
+            [value]="row.amountText"
             (input)="onAmount(row.id, $event)"
           />
         </div>
