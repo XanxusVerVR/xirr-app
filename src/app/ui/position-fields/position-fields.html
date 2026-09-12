@@ -1,0 +1,25 @@
+<section class="card">
+  <h2>{{ title() }}</h2>
+  <div class="fields">
+    <label>
+      <span>{{ dateLabel() }}</span>
+      <input
+        type="date"
+        [class.invalid]="dateInvalid()"
+        [value]="position().date"
+        (input)="onDate($event)"
+      />
+    </label>
+    <label>
+      <span>{{ amountLabel() }}</span>
+      <input
+        type="number"
+        step="any"
+        placeholder="0"
+        [class.invalid]="amountInvalid()"
+        [value]="position().amount ?? ''"
+        (input)="onAmount($event)"
+      />
+    </label>
+  </div>
+</section>
