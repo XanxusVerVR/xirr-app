@@ -3732,7 +3732,9 @@ describe('YamlPanel', () => {
   it('髒掉後表單變動不會覆蓋草稿', async () => {
     const { fixture, store, el } = await setup();
     await type(fixture, el, 'my draft');
-    store.loadExample();
+    // 一般的表單編輯，不是「載入範例」「清除全部」那種明示重置——
+    // 那兩個動作依 spec §6 會無條件轉乾淨，拿來當這裡的觸發會測錯東西
+    store.setInitialDate('2024-01-01');
     await fixture.whenStable();
     expect(el.querySelector('textarea')!.value).toBe('my draft');
   });
