@@ -103,6 +103,55 @@ describe('solveXirr — 性質測試：反解往返', () => {
   }
 });
 
+describe('solveXirr — 時間基準不變性（收斂判準的量級）', () => {
+  // 收斂判準若拿未折現的 max|cf_i| 當容許誤差，最早一筆現金流的日期一遠，
+  // 折現後的殘差就會遠小於容許誤差，Newton 會在離真解很遠處誤判收斂。
+  // 投入 1000、整整 365 天後收回 2000，答案必然是 100%，不因期初日期而變。
+
+  it('[I] 零金額期初落在 2000-01-01 仍解出 100%', () => {
+    const cfs = [cf('2000-01-01', -0), cf('2024-01-01', -1000), cf('2024-12-31', 2000)];
+    expect(rateOf(cfs)).toBeCloseTo(1, 6);
+  });
+
+  it('[I2] 零金額期初落在 1990-01-01 仍解出 100%', () => {
+    const cfs = [cf('1990-01-01', -0), cf('2024-01-01', -1000), cf('2024-12-31', 2000)];
+    expect(rateOf(cfs)).toBeCloseTo(1, 6);
+  });
+
+  describe('性質測試：在更早的日期插入一筆金額為 0 的現金流，不得改變解', () => {
+    const dates = ['2020-03-11', '2021-07-02', '2022-01-19', '2023-11-30', '2024-05-05'];
+
+    /** 造一組在 target 折現率下 NPV 恰為 0 的現金流 */
+    const caseFor = (target: number): CashFlow[] => {
+      const outflows = dates.slice(0, -1).map((d, i) => cf(d, -1000 * (i + 1)));
+      const last = dates[dates.length - 1];
+      const d0 = outflows[0].epochDay;
+      let pv = 0;
+      for (const o of outflows) {
+        pv += o.amount / Math.pow(1 + target, (o.epochDay - d0) / 365);
+      }
+      const tLast = (toEpochDay(last) - d0) / 365;
+      return [...outflows, cf(last, -pv * Math.pow(1 + target, tLast))];
+    };
+
+    const earlier = ['2019-01-01', '2010-06-30', '2000-01-01', '1990-01-01'];
+
+    for (const target of [-0.4, 0.02, 0.1, 0.45, 1.2, 4]) {
+      for (const gap of earlier) {
+        it(`r = ${target}，前面插入 ${gap} 的零現金流`, () => {
+          const base = caseFor(target);
+          const baseRate = rateOf(base);
+          const shifted = rateOf([{ epochDay: toEpochDay(gap), amount: 0 }, ...base]);
+          expect(baseRate).toBeCloseTo(target, 7);
+          expect(Math.abs(shifted - baseRate) / Math.max(1, Math.abs(baseRate))).toBeLessThan(
+            1e-9,
+          );
+        });
+      }
+    }
+  });
+});
+
 describe('countSignChanges', () => {
   it('先付後收只變換一次', () => {
     expect(countSignChanges([cf('2024-01-01', -100), cf('2024-12-31', 110)])).toBe(1);
