@@ -49,7 +49,7 @@ npm start -- --port 4400
 
 > **`npm test` 在終端機下預設是監看模式**，不會自己結束。CI 或只想跑一次時，務必加 `-- --watch=false`。
 
-## 建置與部署
+## 建置
 
 ```bash
 npm run build
@@ -64,6 +64,58 @@ cd dist/xirr-app/browser
 python3 -m http.server 4700
 # 開啟 http://localhost:4700
 ```
+
+## 部署（GitHub Pages）
+
+線上站台：**https://xanxusvervr.github.io/xirr-app/**
+
+推送到 `main` 就會自動建置並部署，設定在 `.github/workflows/deploy.yml`。流程是 `npm ci` → 跑完整測試 → 建置 → 部署，**測試沒過就不會部署**。建置在 CI 進行，所以 repo 裡不會有產物，也不需要 `gh-pages` 分支。
+
+### base href 是自動推導的
+
+這是 Angular 放 GitHub Pages 最常見的坑。專案頁的網址是 `https://<帳號>.github.io/<repo>/`，但預設的 `<base href="/">` 會讓所有 JS/CSS 去網域根目錄找，結果全部 404、畫面一片空白。
+
+workflow 依 repo 名稱自動算出正確的值，**換 repo 名或 fork 都不必改設定**：
+
+| repo 種類 | base href |
+|---|---|
+| `<帳號>.github.io`（使用者頁，網站在根目錄） | `/` |
+| 其他（專案頁，網站在子路徑） | `/<repo名>/` |
+
+要在本機重現子路徑的情況：
+
+```bash
+npm run build -- --base-href /xirr-app/
+mkdir -p /tmp/pages/xirr-app && cp -R dist/xirr-app/browser/. /tmp/pages/xirr-app/
+cd /tmp/pages && python3 -m http.server 4950
+# 開啟 http://localhost:4950/xirr-app/
+```
+
+### 換到另一個 repo
+
+1. 在 GitHub 建一個空 repo（不要勾 README／.gitignore，避免與本地衝突）
+2. `git remote add origin <repo-url>` 然後 `git push -u origin main`
+3. repo 的 **Settings → Pages → Build and deployment → Source** 選 **GitHub Actions**（不是 "Deploy from a branch"）
+4. 到 **Actions** 分頁等 workflow 跑完，網址會顯示在 deploy 步驟
+
+第 3 步沒做的話，workflow 會一路跑到最後一步才失敗——因為 Pages 還沒啟用，`deploy-pages` 沒有目標。
+
+### 這個專案不需要的東西
+
+網路上的教學常會叫你加這兩個，但這裡都用不到：
+
+- **`404.html`**：那是給有前端路由的 SPA 做 deep link fallback 用的。這個 app 沒有路由，只有一頁。
+- **`.nojekyll`**：用 Actions 部署時 GitHub 不會跑 Jekyll，而且產物裡也沒有底線開頭的檔案。
+
+### 維護 action 版本
+
+GitHub 每隔一段時間會淘汰舊的 Node runtime，Actions 會跳出 `Node.js XX is deprecated` 警告。升級時**不要只看主版號** —— 要實際確認該版的 `action.yml` 裡 `runs.using` 是什麼：
+
+```bash
+curl -s https://raw.githubusercontent.com/actions/checkout/v7.0.1/action.yml | grep "using:"
+```
+
+還要注意**間接依賴**：`upload-pages-artifact` 自己是 composite action，真正的 runtime 來自它內部呼叫的 `upload-artifact`，所以光升級 workflow 裡看得到的那幾個不會解決問題。升級後也要確認自己用到的 inputs／outputs（這裡是 `node-version`、`cache`、`path`、`page_url`）在新版還在。
 
 ## 專案結構
 
