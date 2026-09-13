@@ -38,10 +38,25 @@ export class PositionFields {
   protected readonly dateErrorId = computed(() => `pos-${this.kind()}-date-error`);
   protected readonly amountErrorId = computed(() => `pos-${this.kind()}-amount-error`);
 
+  /**
+   * <input type="date"> 回報 value === '' 的時機不只是「使用者清空了」，也包含
+   * 「日期還沒打完」（例如只改了 MM 那一段）。若在 input 事件就把空字串寫回
+   * store，[value] 綁定會把整個欄位打回空白，吃掉使用者尚未打完的其他欄位。
+   * 因此 input 事件只在新值非空時才寫回；真正的清空留給 blur 處理。
+   */
   protected onDate(event: Event): void {
     const value = (event.target as HTMLInputElement).value;
+    if (value === '') return;
     if (this.kind() === 'initial') this.store.setInitialDate(value);
     else this.store.setFinalDate(value);
+  }
+
+  /** 欄位失焦時若仍是空字串，代表使用者真的清空了日期，這時才提交清空。 */
+  protected onDateBlur(event: Event): void {
+    const value = (event.target as HTMLInputElement).value;
+    if (value !== '') return;
+    if (this.kind() === 'initial') this.store.setInitialDate('');
+    else this.store.setFinalDate('');
   }
 
   protected onAmount(event: Event): void {
