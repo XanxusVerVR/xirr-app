@@ -30,6 +30,85 @@ describe('PositionFields', () => {
     expect(store.form().initial.date).toBe('2024-01-01');
   });
 
+  it.each(['initial', 'final'] as const)(
+    '%s：日期輸入到一半（value 變空字串）不會覆蓋 store，且欄位不會被寫回清空',
+    async (kind) => {
+      const { fixture, store, el } = await setup(kind);
+      const input = el.querySelector<HTMLInputElement>('input[type="date"]')!;
+
+      input.value = '2026-02-06';
+      input.dispatchEvent(new Event('input'));
+      await fixture.whenStable();
+      expect(store.form()[kind].date).toBe('2026-02-06');
+
+      // 模擬瀏覽器在某一段（例如 MM）打到一半時，回報的 value 變成空字串
+      input.value = '';
+      input.dispatchEvent(new Event('input'));
+      await fixture.whenStable();
+
+      // store 沒被覆蓋，[value] 綁定的來源沒變，Angular 就不會把欄位寫回去
+      // （不論寫回空字串或寫回舊的完整日期，都會摧毀瀏覽器內部尚未打完的分段緩衝區）
+      expect(store.form()[kind].date).toBe('2026-02-06');
+      expect(input.value).toBe('');
+    },
+  );
+
+  it.each(['initial', 'final'] as const)(
+    '%s：日期欄失焦時仍是空字串才真正清空 store',
+    async (kind) => {
+      const { fixture, store, el } = await setup(kind);
+      const input = el.querySelector<HTMLInputElement>('input[type="date"]')!;
+
+      input.value = '2026-02-06';
+      input.dispatchEvent(new Event('input'));
+      await fixture.whenStable();
+
+      input.value = '';
+      input.dispatchEvent(new Event('input'));
+      input.dispatchEvent(new Event('blur'));
+      await fixture.whenStable();
+
+      expect(store.form()[kind].date).toBe('');
+    },
+  );
+
+  it.each(['initial', 'final'] as const)(
+    '%s：日期輸入完整新值後仍正常寫入 store（正常路徑不受影響）',
+    async (kind) => {
+      const { fixture, store, el } = await setup(kind);
+      const input = el.querySelector<HTMLInputElement>('input[type="date"]')!;
+
+      input.value = '2026-02-06';
+      input.dispatchEvent(new Event('input'));
+      await fixture.whenStable();
+
+      input.value = '';
+      input.dispatchEvent(new Event('input'));
+      await fixture.whenStable();
+
+      input.value = '2026-03-06';
+      input.dispatchEvent(new Event('input'));
+      await fixture.whenStable();
+
+      expect(store.form()[kind].date).toBe('2026-03-06');
+    },
+  );
+
+  it.each(['initial', 'final'] as const)(
+    '%s：日期欄失焦時若 value 非空，不會清空 store',
+    async (kind) => {
+      const { fixture, store, el } = await setup(kind);
+      const input = el.querySelector<HTMLInputElement>('input[type="date"]')!;
+
+      input.value = '2026-02-06';
+      input.dispatchEvent(new Event('input'));
+      input.dispatchEvent(new Event('blur'));
+      await fixture.whenStable();
+
+      expect(store.form()[kind].date).toBe('2026-02-06');
+    },
+  );
+
   it('輸入金額會寫進 store', async () => {
     const { fixture, store, el } = await setup('final');
     const input = el.querySelector<HTMLInputElement>('input[inputmode="decimal"]')!;

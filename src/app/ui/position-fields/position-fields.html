@@ -10,6 +10,7 @@
         [attr.aria-invalid]="dateInvalid() ? 'true' : null"
         [attr.aria-describedby]="dateInvalid() ? dateErrorId() : null"
         (input)="onDate($event)"
+        (blur)="onDateBlur($event)"
       />
       @if (dateErrorMessage(); as dateError) {
         <p class="field-error" [id]="dateErrorId()">{{ dateError }}</p>

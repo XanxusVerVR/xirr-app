@@ -32,6 +32,7 @@
                 fieldIssueMessage(row.id, 'date') ? fieldErrorId(row.id, 'date') : null
               "
               (input)="onDate(row.id, $event)"
+              (blur)="onDateBlur(row.id, $event)"
             />
           </div>
           @if (fieldIssueMessage(row.id, 'date'); as dateError) {

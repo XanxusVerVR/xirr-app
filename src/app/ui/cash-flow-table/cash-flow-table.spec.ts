@@ -128,6 +128,73 @@ describe('CashFlowTable', () => {
     expect(store.form().rows[0].amount).toBeNull();
   });
 
+  it('日期輸入到一半（value 變空字串）不會覆蓋 store，且欄位不會被寫回清空', async () => {
+    const { fixture, store, el } = await setup();
+    const date = el.querySelector<HTMLInputElement>('input[type="date"]')!;
+
+    date.value = '2026-02-06';
+    date.dispatchEvent(new Event('input'));
+    await fixture.whenStable();
+    expect(store.form().rows[0].date).toBe('2026-02-06');
+
+    // 模擬瀏覽器在某一段（例如 MM）打到一半時，回報的 value 變成空字串
+    date.value = '';
+    date.dispatchEvent(new Event('input'));
+    await fixture.whenStable();
+
+    // store 沒被覆蓋，[value] 綁定的來源沒變，Angular 就不會把欄位寫回去
+    // （不論寫回空字串或寫回舊的完整日期，都會摧毀瀏覽器內部尚未打完的分段緩衝區）
+    expect(store.form().rows[0].date).toBe('2026-02-06');
+    expect(date.value).toBe('');
+  });
+
+  it('日期欄失焦時仍是空字串才真正清空 store', async () => {
+    const { fixture, store, el } = await setup();
+    const date = el.querySelector<HTMLInputElement>('input[type="date"]')!;
+
+    date.value = '2026-02-06';
+    date.dispatchEvent(new Event('input'));
+    await fixture.whenStable();
+
+    date.value = '';
+    date.dispatchEvent(new Event('input'));
+    date.dispatchEvent(new Event('blur'));
+    await fixture.whenStable();
+
+    expect(store.form().rows[0].date).toBe('');
+  });
+
+  it('日期輸入完整新值後仍正常寫入 store（正常路徑不受影響）', async () => {
+    const { fixture, store, el } = await setup();
+    const date = el.querySelector<HTMLInputElement>('input[type="date"]')!;
+
+    date.value = '2026-02-06';
+    date.dispatchEvent(new Event('input'));
+    await fixture.whenStable();
+
+    date.value = '';
+    date.dispatchEvent(new Event('input'));
+    await fixture.whenStable();
+
+    date.value = '2026-03-06';
+    date.dispatchEvent(new Event('input'));
+    await fixture.whenStable();
+
+    expect(store.form().rows[0].date).toBe('2026-03-06');
+  });
+
+  it('日期欄失焦時若 value 非空，不會清空 store', async () => {
+    const { fixture, store, el } = await setup();
+    const date = el.querySelector<HTMLInputElement>('input[type="date"]')!;
+
+    date.value = '2026-02-06';
+    date.dispatchEvent(new Event('input'));
+    date.dispatchEvent(new Event('blur'));
+    await fixture.whenStable();
+
+    expect(store.form().rows[0].date).toBe('2026-02-06');
+  });
+
   it('有錯誤的列會被標示', async () => {
     const { fixture, store, el } = await setup();
     store.setInitialDate('2024-01-01');
