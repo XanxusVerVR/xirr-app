@@ -253,3 +253,95 @@ describe('runCalculation — 完全空白列', () => {
     expect(noteCodes(run)).not.toContain('SORTED');
   });
 });
+
+describe('runCalculation — 無法解析的金額不算空白列（回歸 P2 finding 2）', () => {
+  const unparseableForm = (amountText: string) =>
+    form({
+      initial: { date: '2024-01-01', amount: 1000, amountText: '1000' },
+      rows: [{ id: 'bad', date: '', amount: null, amountText }],
+      final: { date: '2024-12-31', amount: 1100, amountText: '1100' },
+    });
+
+  it.each(['abc', '-', '1,000'])(
+    '日期留空、金額文字為 "%s" 時擋下計算而非靜默略過該列',
+    (amountText) => {
+      const run = runCalculation(unparseableForm(amountText));
+      expect(run.outcome.ok).toBe(false);
+      if (run.outcome.ok) return;
+      expect(run.outcome.errors).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            code: 'MISSING_DATE',
+            target: { kind: 'row', rowId: 'bad', field: 'date' },
+          }),
+          expect.objectContaining({
+            code: 'MISSING_AMOUNT',
+            target: { kind: 'row', rowId: 'bad', field: 'amount' },
+          }),
+        ]),
+      );
+    },
+  );
+
+  it('真正空白的列（日期、金額、原始文字皆未填）仍被略過，計算照常成功', () => {
+    const run = runCalculation(
+      form({
+        initial: { date: '2024-01-01', amount: 1000, amountText: '1000' },
+        rows: [{ id: 'blank', date: '', amount: null, amountText: '' }],
+        final: { date: '2024-12-31', amount: 1100, amountText: '1100' },
+      }),
+    );
+    expect(run.outcome.ok).toBe(true);
+  });
+});
+
+describe('runCalculation — 負數部位擋下計算（回歸 P2 finding 3）', () => {
+  it('期末部位為負數時擋下計算，不再誤報本金全損 -100%', () => {
+    const run = runCalculation(
+      form({
+        initial: { date: '2024-01-01', amount: 1000, amountText: '1000' },
+        rows: [],
+        final: { date: '2024-12-31', amount: -500, amountText: '-500' },
+      }),
+    );
+    expect(run.outcome.ok).toBe(false);
+    if (run.outcome.ok) return;
+    expect(run.outcome.errors).toEqual([
+      expect.objectContaining({
+        code: 'NEGATIVE_POSITION',
+        target: { kind: 'final', field: 'amount' },
+      }),
+    ]);
+  });
+
+  it('期初部位為負數時擋下計算', () => {
+    const run = runCalculation(form({ initial: { date: '2024-01-01', amount: -1, amountText: '-1' } }));
+    expect(run.outcome.ok).toBe(false);
+    if (run.outcome.ok) return;
+    expect(run.outcome.errors).toEqual([
+      expect.objectContaining({
+        code: 'NEGATIVE_POSITION',
+        target: { kind: 'initial', field: 'amount' },
+      }),
+    ]);
+  });
+
+  it('期末部位恰為 0（本金全損）不受影響，仍給 -100% 與 TOTAL_LOSS', () => {
+    const run = runCalculation(
+      form({ rows: [], final: { date: '2025-01-01', amount: 0, amountText: '0' } }),
+    );
+    expect(run.outcome.ok).toBe(true);
+    if (!run.outcome.ok) return;
+    expect(run.outcome.metrics.xirr).toBe(-1);
+    expect(noteCodes(run)).toContain('TOTAL_LOSS');
+  });
+
+  it('資金進出列（非部位）金額為負數仍是合法的提款，照常計算', () => {
+    const run = runCalculation(
+      form({
+        rows: [{ id: 'w', date: '2024-06-01', amount: -20000, amountText: '-20000' }],
+      }),
+    );
+    expect(run.outcome.ok).toBe(true);
+  });
+});

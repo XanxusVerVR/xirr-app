@@ -58,6 +58,8 @@ export type IssueCode =
   | 'DATE_ORDER'
   | 'DATE_OUT_OF_RANGE'
   | 'NO_INVESTMENT'
+  /** 期初／期末部位為持有部位，不可為負數；列（資金進出）不受此限 */
+  | 'NEGATIVE_POSITION'
   /**
    * 現金流正負皆有、理論上應有解，但 solver 仍找不到根。
    * 這是 spec §4 未列出的第 6 個代碼，刻意加入：

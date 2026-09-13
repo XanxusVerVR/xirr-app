@@ -16,6 +16,10 @@ function missingAmount(target: IssueTarget, label: string): ValidationIssue {
   return { code: 'MISSING_AMOUNT', message: `請填寫${label}金額`, target };
 }
 
+function negativePosition(target: IssueTarget, label: string): ValidationIssue {
+  return { code: 'NEGATIVE_POSITION', message: `${label}是持有部位，金額不可為負數`, target };
+}
+
 function checkPosition(
   position: PositionInput,
   kind: 'initial' | 'final',
@@ -27,6 +31,9 @@ function checkPosition(
   }
   if (position.amount === null || !Number.isFinite(position.amount)) {
     issues.push(missingAmount({ kind, field: 'amount' }, label));
+  } else if (position.amount < 0) {
+    // 0 是合法的（從零開始定期定額／本金全損），只擋負數
+    issues.push(negativePosition({ kind, field: 'amount' }, label));
   }
   return issues;
 }

@@ -9,7 +9,7 @@
   </div>
 
   <div cdkDropList (cdkDropListDropped)="onDrop($event)" class="flow-list">
-    @for (row of store.form().rows; track row.id) {
+    @for (row of store.form().rows; track row.id; let i = $index) {
       <div class="flow-row" [class.has-error]="rowHasError(row.id)" cdkDrag>
         <div class="cell date-cell">
           <button
@@ -25,6 +25,8 @@
             type="date"
             [attr.data-row-id]="row.id"
             [value]="row.date"
+            [attr.aria-label]="'第 ' + (i + 1) + ' 筆資金進出的日期'"
+            [attr.aria-invalid]="fieldHasIssue(row.id, 'date') ? 'true' : null"
             (input)="onDate(row.id, $event)"
           />
         </div>
@@ -35,6 +37,8 @@
             inputmode="decimal"
             placeholder="0"
             [value]="row.amountText"
+            [attr.aria-label]="'第 ' + (i + 1) + ' 筆資金進出的金額'"
+            [attr.aria-invalid]="fieldHasIssue(row.id, 'amount') ? 'true' : null"
             (input)="onAmount(row.id, $event)"
           />
         </div>

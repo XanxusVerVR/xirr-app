@@ -48,4 +48,9 @@ export class CashFlowTable {
   protected rowHasError(id: string): boolean {
     return this.store.issuesByRow().has(id);
   }
+
+  /** 供輸入框的 aria-invalid：只標記真的有問題的那個欄位，不是整列 */
+  protected fieldHasIssue(id: string, field: 'date' | 'amount'): boolean {
+    return (this.store.issuesByRow().get(id) ?? []).some((issue) => issue.target.field === field);
+  }
 }
