@@ -102,24 +102,50 @@
   transition: transform 180ms cubic-bezier(0, 0, 0.2, 1);
 }
 
-/* 窄螢幕下 190px/120px 的最小欄寬會撐破版面，改用可縮小的彈性欄寬 */
+/*
+ * 窄螢幕下三欄並排放不下：<input type="date"> 的內在最小寬度（yyyy/mm/dd
+ * 約 118px）加上金額欄與兩顆操作鈕，在 375px 的裝置上就會超出。
+ *
+ * 先前的做法是把欄寬改成可縮小的 minmax(0, fr)，但 input 本身仍是
+ * min-width:auto，不會跟著縮，於是溢出自己的儲存格、疊到金額欄上。
+ * 若再強制 min-width:0，日期會被裁成「2024/(」，看不到月與日。
+ *
+ * 因此改為堆疊：日期與金額各佔一行，操作鈕併到右側，兩者都拿得到足夠寬度。
+ */
 @media (max-width: 480px) {
-  .flow-head,
+  /* 欄名對堆疊版面沒有意義，且會與實際欄位對不上 */
+  .flow-head {
+    display: none;
+  }
+
   .flow-row {
-    grid-template-columns: minmax(0, 1.3fr) minmax(0, 0.9fr) auto;
-    gap: 0.35rem;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "date   actions"
+      "amount actions";
+    gap: 0.4rem 0.5rem;
+    align-items: center;
+    padding: 0.5rem 0.4rem;
   }
 
   .date-cell {
+    grid-area: date;
     gap: 0.25rem;
   }
 
+  .amount-cell {
+    grid-area: amount;
+  }
+
   .row-actions {
+    grid-area: actions;
+    flex-direction: column;
     gap: 0.25rem;
   }
 
   .row-actions button {
-    padding: 0.3rem 0.4rem;
+    width: 100%;
+    padding: 0.3rem 0.5rem;
     font-size: 0.8rem;
   }
 }
