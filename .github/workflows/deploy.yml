@@ -1,0 +1,61 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 同時只跑一個部署；新的推送取代排隊中的，但不中斷進行中的
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+
+      - run: npm ci
+
+      # 測試沒過就不部署
+      - run: npm test -- --watch=false
+
+      # base href 依 repo 種類自動推導：
+      #   使用者頁 <帳號>.github.io  -> 網站在網域根目錄      -> /
+      #   專案頁   <帳號>.github.io/<repo>/ -> 網站在子路徑   -> /<repo>/
+      # 寫死成 / 的話，專案頁的所有 JS/CSS 都會 404
+      - name: Resolve base href
+        id: base
+        run: |
+          if [[ "${{ github.event.repository.name }}" == *.github.io ]]; then
+            echo "href=/" >> "$GITHUB_OUTPUT"
+          else
+            echo "href=/${{ github.event.repository.name }}/" >> "$GITHUB_OUTPUT"
+          fi
+
+      - run: npm run build -- --base-href "${{ steps.base.outputs.href }}"
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist/xirr-app/browser
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
