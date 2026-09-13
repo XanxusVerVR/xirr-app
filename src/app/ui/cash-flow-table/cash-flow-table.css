@@ -23,6 +23,11 @@
   border-radius: var(--radius);
 }
 
+/* 每欄本身是 grid item，預設 min-width:auto 會讓長錯誤訊息撐開整列 */
+.cell {
+  min-width: 0;
+}
+
 .flow-row.has-error {
   background: #fdf3f2;
   box-shadow: inset 0 0 0 1px var(--danger);
@@ -30,8 +35,24 @@
 
 .date-cell {
   display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.date-input-row {
+  display: flex;
   align-items: center;
   gap: 0.4rem;
+  min-width: 0;
+}
+
+.field-error {
+  margin: 0;
+  color: var(--danger);
+  font-size: 0.78rem;
+  line-height: 1.3;
+  overflow-wrap: break-word;
 }
 
 /* 把手必須是獨立元素，不可覆蓋在 input 上，否則日期欄位無法點擊輸入 */

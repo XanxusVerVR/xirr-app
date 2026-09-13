@@ -15,11 +15,13 @@
     spellcheck="false"
     aria-labelledby="yaml-panel-heading"
     [value]="store.yamlText()"
+    [attr.aria-invalid]="store.yamlError() ? 'true' : null"
+    [attr.aria-describedby]="store.yamlError() ? 'yaml-panel-error' : null"
     (input)="onInput($event)"
   ></textarea>
 
   @if (store.yamlError(); as error) {
-    <p class="yaml-error">{{ error }}</p>
+    <p class="yaml-error" id="yaml-panel-error">{{ error }}</p>
   }
 
   <div class="yaml-actions">

@@ -12,23 +12,31 @@
     @for (row of store.form().rows; track row.id; let i = $index) {
       <div class="flow-row" [class.has-error]="rowHasError(row.id)" cdkDrag>
         <div class="cell date-cell">
-          <button
-            type="button"
-            class="drag-handle"
-            cdkDragHandle
-            aria-label="拖曳調整順序"
-            title="拖曳調整順序"
-          >
-            ⠿
-          </button>
-          <input
-            type="date"
-            [attr.data-row-id]="row.id"
-            [value]="row.date"
-            [attr.aria-label]="'第 ' + (i + 1) + ' 筆資金進出的日期'"
-            [attr.aria-invalid]="fieldHasIssue(row.id, 'date') ? 'true' : null"
-            (input)="onDate(row.id, $event)"
-          />
+          <div class="date-input-row">
+            <button
+              type="button"
+              class="drag-handle"
+              cdkDragHandle
+              aria-label="拖曳調整順序"
+              title="拖曳調整順序"
+            >
+              ⠿
+            </button>
+            <input
+              type="date"
+              [attr.data-row-id]="row.id"
+              [value]="row.date"
+              [attr.aria-label]="'第 ' + (i + 1) + ' 筆資金進出的日期'"
+              [attr.aria-invalid]="fieldHasIssue(row.id, 'date') ? 'true' : null"
+              [attr.aria-describedby]="
+                fieldIssueMessage(row.id, 'date') ? fieldErrorId(row.id, 'date') : null
+              "
+              (input)="onDate(row.id, $event)"
+            />
+          </div>
+          @if (fieldIssueMessage(row.id, 'date'); as dateError) {
+            <p class="field-error" [id]="fieldErrorId(row.id, 'date')">{{ dateError }}</p>
+          }
         </div>
 
         <div class="cell">
@@ -39,8 +47,14 @@
             [value]="row.amountText"
             [attr.aria-label]="'第 ' + (i + 1) + ' 筆資金進出的金額'"
             [attr.aria-invalid]="fieldHasIssue(row.id, 'amount') ? 'true' : null"
+            [attr.aria-describedby]="
+              fieldIssueMessage(row.id, 'amount') ? fieldErrorId(row.id, 'amount') : null
+            "
             (input)="onAmount(row.id, $event)"
           />
+          @if (fieldIssueMessage(row.id, 'amount'); as amountError) {
+            <p class="field-error" [id]="fieldErrorId(row.id, 'amount')">{{ amountError }}</p>
+          }
         </div>
 
         <div class="cell row-actions">

@@ -7,8 +7,13 @@
         type="date"
         [class.invalid]="dateInvalid()"
         [value]="position().date"
+        [attr.aria-invalid]="dateInvalid() ? 'true' : null"
+        [attr.aria-describedby]="dateInvalid() ? dateErrorId() : null"
         (input)="onDate($event)"
       />
+      @if (dateErrorMessage(); as dateError) {
+        <p class="field-error" [id]="dateErrorId()">{{ dateError }}</p>
+      }
     </label>
     <label>
       <span>{{ amountLabel() }}</span>
@@ -18,8 +23,13 @@
         placeholder="0"
         [class.invalid]="amountInvalid()"
         [value]="position().amountText"
+        [attr.aria-invalid]="amountInvalid() ? 'true' : null"
+        [attr.aria-describedby]="amountInvalid() ? amountErrorId() : null"
         (input)="onAmount($event)"
       />
+      @if (amountErrorMessage(); as amountError) {
+        <p class="field-error" [id]="amountErrorId()">{{ amountError }}</p>
+      }
     </label>
   </div>
 </section>

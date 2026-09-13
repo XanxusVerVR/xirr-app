@@ -79,6 +79,45 @@ describe('YamlPanel', () => {
     expect(el.querySelector('.dirty-badge')).not.toBeNull();
   });
 
+  describe('無障礙錯誤關聯', () => {
+    it('套用失敗時 textarea 帶 aria-invalid 與 aria-describedby，指向的元素存在且文字含行號', async () => {
+      const { fixture, el } = await setup();
+      await type(fixture, el, 'initial:\n  date: 2024-01-01\n   amount: 5\n');
+      el.querySelector<HTMLButtonElement>('.apply-yaml')!.click();
+      await fixture.whenStable();
+
+      const textarea = el.querySelector<HTMLTextAreaElement>('textarea')!;
+      expect(textarea.getAttribute('aria-invalid')).toBe('true');
+      const describedBy = textarea.getAttribute('aria-describedby');
+      expect(describedBy).toBeTruthy();
+      const errorEl = el.querySelector(`#${describedBy}`);
+      expect(errorEl).not.toBeNull();
+      expect(errorEl!.textContent).toContain('第 3 行');
+    });
+
+    it('沒有錯誤時 textarea 不帶 aria-invalid 也不帶 aria-describedby', async () => {
+      const { el } = await setup();
+      const textarea = el.querySelector<HTMLTextAreaElement>('textarea')!;
+      expect(textarea.getAttribute('aria-invalid')).toBeNull();
+      expect(textarea.getAttribute('aria-describedby')).toBeNull();
+      expect(el.querySelector('.yaml-error')).toBeNull();
+    });
+
+    it('捨棄變更後，textarea 的 aria-invalid／aria-describedby 一併清除', async () => {
+      const { fixture, el } = await setup();
+      await type(fixture, el, 'initial:\n  date: 2024-01-01\n   amount: 5\n');
+      el.querySelector<HTMLButtonElement>('.apply-yaml')!.click();
+      await fixture.whenStable();
+
+      el.querySelector<HTMLButtonElement>('.discard-yaml')!.click();
+      await fixture.whenStable();
+
+      const textarea = el.querySelector<HTMLTextAreaElement>('textarea')!;
+      expect(textarea.getAttribute('aria-invalid')).toBeNull();
+      expect(textarea.getAttribute('aria-describedby')).toBeNull();
+    });
+  });
+
   it('捨棄變更後回到跟隨表單', async () => {
     const { fixture, store, el } = await setup();
     store.loadExample();
