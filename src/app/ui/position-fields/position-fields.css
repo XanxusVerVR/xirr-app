@@ -14,3 +14,10 @@ label > span {
   font-size: 0.85rem;
   color: var(--muted);
 }
+
+.field-error {
+  margin: 0;
+  color: var(--danger);
+  font-size: 0.8rem;
+  line-height: 1.3;
+}

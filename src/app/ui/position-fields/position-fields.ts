@@ -29,8 +29,14 @@ export class PositionFields {
     return this.kind() === 'initial' ? form.initial : form.final;
   });
 
-  protected readonly dateInvalid = computed(() => this.hasIssue('date'));
-  protected readonly amountInvalid = computed(() => this.hasIssue('amount'));
+  protected readonly dateInvalid = computed(() => this.dateErrorMessage() !== null);
+  protected readonly amountInvalid = computed(() => this.amountErrorMessage() !== null);
+
+  protected readonly dateErrorMessage = computed(() => this.issueMessage('date'));
+  protected readonly amountErrorMessage = computed(() => this.issueMessage('amount'));
+
+  protected readonly dateErrorId = computed(() => `pos-${this.kind()}-date-error`);
+  protected readonly amountErrorId = computed(() => `pos-${this.kind()}-amount-error`);
 
   protected onDate(event: Event): void {
     const value = (event.target as HTMLInputElement).value;
@@ -44,9 +50,10 @@ export class PositionFields {
     else this.store.setFinalAmount(value);
   }
 
-  private hasIssue(field: 'date' | 'amount'): boolean {
-    return this.store
+  private issueMessage(field: 'date' | 'amount'): string | null {
+    const issue = this.store
       .generalIssues()
-      .some((i) => i.target.kind === this.kind() && i.target.field === field);
+      .find((i) => i.target.kind === this.kind() && i.target.field === field);
+    return issue?.message ?? null;
   }
 }

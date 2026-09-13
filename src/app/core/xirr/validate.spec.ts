@@ -60,6 +60,36 @@ describe('validateRequired', () => {
     f.rows[0].amount = null;
     expect(validateRequired(f)).toHaveLength(3);
   });
+
+  it('期初部位為負數時擋下 NEGATIVE_POSITION（回歸 P2 finding 3）', () => {
+    const f = baseForm();
+    f.initial.amount = -1;
+    const issues = validateRequired(f);
+    expect(issues).toEqual([
+      expect.objectContaining({
+        code: 'NEGATIVE_POSITION',
+        target: { kind: 'initial', field: 'amount' },
+      }),
+    ]);
+  });
+
+  it('期末部位為負數時擋下 NEGATIVE_POSITION（回歸 P2 finding 3）', () => {
+    const f = baseForm();
+    f.final.amount = -500;
+    const issues = validateRequired(f);
+    expect(issues).toEqual([
+      expect.objectContaining({
+        code: 'NEGATIVE_POSITION',
+        target: { kind: 'final', field: 'amount' },
+      }),
+    ]);
+  });
+
+  it('列（資金進出）的負數金額仍然合法，不受部位限制約束', () => {
+    const f = baseForm();
+    f.rows[0].amount = -999;
+    expect(validateRequired(f)).toEqual([]);
+  });
 });
 
 describe('resolveForm', () => {

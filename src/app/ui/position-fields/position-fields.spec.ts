@@ -70,6 +70,86 @@ describe('PositionFields', () => {
     expect(el.querySelector('input[type="date"]')!.classList).toContain('invalid');
   });
 
+  describe('無障礙錯誤關聯', () => {
+    it('有錯誤時欄位帶 aria-invalid、aria-describedby，指向的元素存在且文字是對應訊息', async () => {
+      const { fixture, store, el } = await setup('initial');
+      store.calculate(); // 空表單必定產生必填錯誤
+      await fixture.whenStable();
+
+      const date = el.querySelector<HTMLInputElement>('input[type="date"]')!;
+      const amount = el.querySelector<HTMLInputElement>('input[inputmode="decimal"]')!;
+
+      expect(date.getAttribute('aria-invalid')).toBe('true');
+      const dateDescribedBy = date.getAttribute('aria-describedby');
+      expect(dateDescribedBy).toBeTruthy();
+      const dateError = el.querySelector(`#${dateDescribedBy}`);
+      expect(dateError).not.toBeNull();
+      expect(dateError!.textContent).toContain('日期');
+
+      expect(amount.getAttribute('aria-invalid')).toBe('true');
+      const amountDescribedBy = amount.getAttribute('aria-describedby');
+      expect(amountDescribedBy).toBeTruthy();
+      const amountError = el.querySelector(`#${amountDescribedBy}`);
+      expect(amountError).not.toBeNull();
+      expect(amountError!.textContent).toContain('金額');
+    });
+
+    it('沒有錯誤時不帶 aria-invalid、不帶 aria-describedby，也沒有錯誤元素', async () => {
+      const { fixture, store, el } = await setup('initial');
+      store.loadExample(); // 合法表單，計算前不應有任何驗證錯誤
+      await fixture.whenStable();
+
+      const date = el.querySelector<HTMLInputElement>('input[type="date"]')!;
+      const amount = el.querySelector<HTMLInputElement>('input[inputmode="decimal"]')!;
+
+      expect(date.getAttribute('aria-invalid')).toBeNull();
+      expect(date.getAttribute('aria-describedby')).toBeNull();
+      expect(amount.getAttribute('aria-invalid')).toBeNull();
+      expect(amount.getAttribute('aria-describedby')).toBeNull();
+      expect(el.querySelector('.field-error')).toBeNull();
+    });
+
+    it('只有金額有問題時，只有金額欄帶 aria-invalid／aria-describedby，日期欄不受影響', async () => {
+      const { fixture, store, el } = await setup('initial');
+      store.setInitialDate('2024-01-01'); // 日期合法
+      store.setFinalDate('2025-01-01');
+      store.setFinalAmount('1000');
+      store.calculate(); // 期初金額留空 → 只有期初金額有問題
+      await fixture.whenStable();
+
+      const date = el.querySelector<HTMLInputElement>('input[type="date"]')!;
+      const amount = el.querySelector<HTMLInputElement>('input[inputmode="decimal"]')!;
+
+      expect(amount.getAttribute('aria-invalid')).toBe('true');
+      expect(amount.getAttribute('aria-describedby')).toBeTruthy();
+      expect(date.getAttribute('aria-invalid')).toBeNull();
+      expect(date.getAttribute('aria-describedby')).toBeNull();
+    });
+
+    it('期初與期末各自的錯誤只關聯到自己的欄位，id 不互相衝突', async () => {
+      const initialSetup = await setup('initial');
+      initialSetup.store.calculate();
+      await initialSetup.fixture.whenStable();
+      const initialDateId = initialSetup.el
+        .querySelector<HTMLInputElement>('input[type="date"]')!
+        .getAttribute('aria-describedby');
+
+      // 同一支測試內要換一個 kind 重新渲染元件，TestBed 不能在同一個測試裡二次
+      // configureTestingModule，必須先手動 reset（跨 it 之間由測試框架自動 reset）
+      TestBed.resetTestingModule();
+      const finalSetup = await setup('final');
+      finalSetup.store.calculate();
+      await finalSetup.fixture.whenStable();
+      const finalDateId = finalSetup.el
+        .querySelector<HTMLInputElement>('input[type="date"]')!
+        .getAttribute('aria-describedby');
+
+      expect(initialDateId).toBeTruthy();
+      expect(finalDateId).toBeTruthy();
+      expect(initialDateId).not.toBe(finalDateId);
+    });
+  });
+
   // 無法用行為測試重現「輸入負數被吃掉」這個錯誤：jsdom 沒有瀏覽器原生的
   // 「編輯中緩衝區」，所以 type="number" 在真實瀏覽器中把只含符號的內容
   // 清成 '' 這件事，jsdom 從未忠實模擬過。這裡改為釘住標記本身，確保

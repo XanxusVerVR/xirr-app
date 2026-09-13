@@ -53,9 +53,13 @@ function collectNotes(cfs: readonly CashFlow[], rate: number, sorted: boolean): 
   return notes;
 }
 
-/** 完全空白的列（日期與金額皆未填）視為「尚未使用」，不參與驗證與計算 */
+/**
+ * 完全空白的列（日期、金額數值與原始輸入文字皆未填）視為「尚未使用」，不參與驗證與計算。
+ * 必須連 amountText 一起檢查：金額解析失敗時 amount 是 null，但 amountText 仍有內容
+ * （例如使用者打了 "abc"、"-" 或 "1,000"），這種列不是空白，必須照常報錯。
+ */
 function isBlankRow(row: CashFlowRow): boolean {
-  return row.date === '' && row.amount === null;
+  return row.date === '' && row.amount === null && row.amountText.trim() === '';
 }
 
 export function runCalculation(form: CalculatorForm): CalculationRun {

@@ -48,4 +48,22 @@ export class CashFlowTable {
   protected rowHasError(id: string): boolean {
     return this.store.issuesByRow().has(id);
   }
+
+  /** 供輸入框的 aria-invalid：只標記真的有問題的那個欄位，不是整列 */
+  protected fieldHasIssue(id: string, field: 'date' | 'amount'): boolean {
+    return (this.store.issuesByRow().get(id) ?? []).some((issue) => issue.target.field === field);
+  }
+
+  /** 該欄位的錯誤訊息，供 aria-describedby 指向的元素顯示；沒有問題時回傳 null */
+  protected fieldIssueMessage(id: string, field: 'date' | 'amount'): string | null {
+    const issue = (this.store.issuesByRow().get(id) ?? []).find(
+      (i) => i.target.field === field,
+    );
+    return issue?.message ?? null;
+  }
+
+  /** 錯誤訊息元素的 id，輸入框的 aria-describedby 與訊息元素的 id 都由此產生，避免兩處各自拼字串而兜不起來 */
+  protected fieldErrorId(id: string, field: 'date' | 'amount'): string {
+    return `cf-${id}-${field}-error`;
+  }
 }

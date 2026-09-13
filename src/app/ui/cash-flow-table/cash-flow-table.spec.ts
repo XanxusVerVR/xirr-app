@@ -152,4 +152,129 @@ describe('CashFlowTable', () => {
     expect(amount.getAttribute('type')).toBe('text');
     expect(amount.getAttribute('inputmode')).toBe('decimal');
   });
+
+  describe('無障礙標籤（回歸 P2 finding 4）', () => {
+    it('第一列的日期與金額欄位都帶有包含列號與欄位用途的 aria-label', async () => {
+      const { el } = await setup();
+      const row = el.querySelector<HTMLElement>('.flow-row')!;
+      const date = row.querySelector<HTMLInputElement>('input[type="date"]')!;
+      const amount = row.querySelector<HTMLInputElement>('input[inputmode="decimal"]')!;
+
+      expect(date.getAttribute('aria-label')).toContain('第 1 筆');
+      expect(date.getAttribute('aria-label')).toContain('日期');
+      expect(amount.getAttribute('aria-label')).toContain('第 1 筆');
+      expect(amount.getAttribute('aria-label')).toContain('金額');
+    });
+
+    it('新增一列後，第二列的標籤編號正確為「第 2 筆」', async () => {
+      const { fixture, el } = await setup();
+      el.querySelector<HTMLButtonElement>('.add-row')!.click();
+      await fixture.whenStable();
+
+      const rows = el.querySelectorAll<HTMLElement>('.flow-row');
+      const secondDate = rows[1].querySelector<HTMLInputElement>('input[type="date"]')!;
+      expect(secondDate.getAttribute('aria-label')).toContain('第 2 筆');
+    });
+
+    it('複製一列後，新列的標籤編號正確反映其實際位置', async () => {
+      const { fixture, store, el } = await setup();
+      store.loadExample();
+      await fixture.whenStable();
+
+      el.querySelectorAll<HTMLButtonElement>('.duplicate-row')[0].click();
+      await fixture.whenStable();
+
+      const rows = el.querySelectorAll<HTMLElement>('.flow-row');
+      const duplicatedDate = rows[1].querySelector<HTMLInputElement>('input[type="date"]')!;
+      const duplicatedAmount = rows[1].querySelector<HTMLInputElement>(
+        'input[inputmode="decimal"]',
+      )!;
+      expect(duplicatedDate.getAttribute('aria-label')).toContain('第 2 筆');
+      expect(duplicatedAmount.getAttribute('aria-label')).toContain('第 2 筆');
+    });
+
+    it('有問題的欄位帶 aria-invalid="true"，同一列沒問題的欄位不帶', async () => {
+      const { fixture, store, el } = await setup();
+      store.setInitialDate('2024-01-01');
+      store.setInitialAmount('1000');
+      store.setFinalDate('2025-01-01');
+      store.setFinalAmount('1100');
+      store.setRowDate(store.form().rows[0].id, '2024-06-01'); // 金額留空 → 只有金額欄有問題
+      store.calculate();
+      await fixture.whenStable();
+
+      const row = el.querySelector<HTMLElement>('.flow-row')!;
+      const date = row.querySelector<HTMLInputElement>('input[type="date"]')!;
+      const amount = row.querySelector<HTMLInputElement>('input[inputmode="decimal"]')!;
+
+      expect(amount.getAttribute('aria-invalid')).toBe('true');
+      expect(date.getAttribute('aria-invalid')).not.toBe('true');
+    });
+
+    it('有問題的欄位帶 aria-describedby，指向的元素存在且文字是該欄位的訊息', async () => {
+      const { fixture, store, el } = await setup();
+      store.setInitialDate('2024-01-01');
+      store.setInitialAmount('1000');
+      store.setFinalDate('2025-01-01');
+      store.setFinalAmount('1100');
+      store.setRowDate(store.form().rows[0].id, '2024-06-01'); // 金額留空 → 只有金額欄有問題
+      store.calculate();
+      await fixture.whenStable();
+
+      const row = el.querySelector<HTMLElement>('.flow-row')!;
+      const amount = row.querySelector<HTMLInputElement>('input[inputmode="decimal"]')!;
+
+      const describedBy = amount.getAttribute('aria-describedby');
+      expect(describedBy).toBeTruthy();
+      const errorEl = el.querySelector(`#${describedBy}`);
+      expect(errorEl).not.toBeNull();
+      expect(errorEl!.textContent).toContain('請填寫');
+      expect(errorEl!.textContent).toContain('金額');
+    });
+
+    it('沒問題的欄位不帶 aria-describedby，也沒有對應的錯誤元素', async () => {
+      const { fixture, store, el } = await setup();
+      store.setInitialDate('2024-01-01');
+      store.setInitialAmount('1000');
+      store.setFinalDate('2025-01-01');
+      store.setFinalAmount('1100');
+      store.setRowDate(store.form().rows[0].id, '2024-06-01'); // 金額留空 → 只有金額欄有問題
+      store.calculate();
+      await fixture.whenStable();
+
+      const row = el.querySelector<HTMLElement>('.flow-row')!;
+      const date = row.querySelector<HTMLInputElement>('input[type="date"]')!;
+
+      expect(date.getAttribute('aria-describedby')).toBeNull();
+      expect(date.getAttribute('aria-invalid')).toBeNull();
+      expect(row.querySelector('.date-cell .field-error')).toBeNull();
+    });
+
+    it('沒有任何錯誤時，欄位不帶 aria-invalid 也不帶 aria-describedby', async () => {
+      const { el } = await setup();
+      const row = el.querySelector<HTMLElement>('.flow-row')!;
+      const date = row.querySelector<HTMLInputElement>('input[type="date"]')!;
+      const amount = row.querySelector<HTMLInputElement>('input[inputmode="decimal"]')!;
+
+      expect(date.getAttribute('aria-invalid')).toBeNull();
+      expect(date.getAttribute('aria-describedby')).toBeNull();
+      expect(amount.getAttribute('aria-invalid')).toBeNull();
+      expect(amount.getAttribute('aria-describedby')).toBeNull();
+      expect(row.querySelector('.field-error')).toBeNull();
+    });
+
+    it('每個帶 aria-describedby 的輸入框，其指向的 id 在 DOM 中都存在（不留懸空關聯）', async () => {
+      const { fixture, store, el } = await setup();
+      store.setRowDate(store.form().rows[0].id, '2024-06-01'); // 金額留空、期初期末皆空 → 多筆錯誤
+      store.calculate();
+      await fixture.whenStable();
+
+      const inputs = Array.from(el.querySelectorAll<HTMLElement>('input[aria-describedby]'));
+      expect(inputs.length).toBeGreaterThan(0);
+      for (const input of inputs) {
+        const id = input.getAttribute('aria-describedby')!;
+        expect(el.querySelector(`#${id}`)).not.toBeNull();
+      }
+    });
+  });
 });
